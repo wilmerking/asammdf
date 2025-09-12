@@ -223,10 +223,6 @@ class BlockKwargs(TypedDict, total=False):
     address: int
 
 
-def stream_is_mmap(_stream: FileLike | mmap.mmap, mapped: bool) -> TypeIs[mmap.mmap]:
-    return mapped
-
-
 @overload
 def get_text_v3(
     address: int,
@@ -274,7 +270,7 @@ def get_text_v3(address: int, stream: FileLike | mmap.mmap, mapped: bool = False
     if address == 0:
         return "" if decode else b""
 
-    if stream_is_mmap(stream, mapped):
+    if mapped:
         block_id = stream[address : address + 2]
         if block_id != b"TX":
             return "" if decode else b""
@@ -374,7 +370,7 @@ def get_text_v4(
     if address == 0:
         return "" if decode else b""
 
-    if stream_is_mmap(stream, mapped):
+    if mapped:
         if address + 16 > file_limit:
             handle_incomplete_block(address)
             return "" if decode else b""
@@ -383,11 +379,11 @@ def get_text_v4(
         if block_id not in (b"##TX", b"##MD"):
             return "" if decode else b""
 
-        if address + size > file_limit:
+        if (end_of_string := address + size) > file_limit:
             handle_incomplete_block(address)
             return "" if decode else b""
 
-        text_bytes = stream[address + 24 : address + size].split(b"\0", 1)[0].strip(b" \r\t\n")
+        text_bytes = stream[address + 24 : end_of_string].split(b"\0", 1)[0].strip(b" \r\t\n")
     else:
         if address + 24 > file_limit:
             handle_incomplete_block(address)
@@ -944,7 +940,7 @@ def count_channel_groups(
             raise MdfException(f"'{getattr(stream, 'name', stream)}' is not a valid MDF file")
 
     if version >= 4:
-        if stream_is_mmap(stream, mapped):
+        if mapped:
             dg_addr = UINT64_uf(stream, 88)[0]
             while dg_addr:
                 stream.seek(dg_addr + 32)

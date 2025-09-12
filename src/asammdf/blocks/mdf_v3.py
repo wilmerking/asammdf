@@ -41,7 +41,7 @@ from typing_extensions import Any, Buffer, overload, SupportsBytes, TypedDict, U
 
 from .. import tool
 from ..signal import Signal
-from . import mdf_common, utils
+from . import mdf_common
 from . import v2_v3_constants as v23c
 from .conversion_utils import conversion_transfer
 from .cutils import data_block_from_arrays, get_channel_raw_bytes
@@ -765,7 +765,7 @@ class MDF3(MDF_Common[Group]):
 
                     if filter_channels:
                         display_names = {}
-                        if utils.stream_is_mmap(stream, mapped):
+                        if mapped:
                             (
                                 id_,
                                 block_len,

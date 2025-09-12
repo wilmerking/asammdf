@@ -25,7 +25,6 @@ from numpy.typing import ArrayLike, NDArray
 from typing_extensions import Any, Buffer, overload, SupportsBytes, TypedDict, Unpack
 
 from .. import tool
-from . import utils
 from . import v4_constants as v4c
 from .cutils import bytes_dtype_size
 from .types import StrPath
@@ -200,7 +199,7 @@ class AttachmentBlock:
                 handle_incomplete_block(address)
                 raise KeyError
 
-            if utils.stream_is_mmap(stream, mapped):
+            if mapped:
                 (
                     self.id,
                     self.reserved0,
@@ -580,7 +579,7 @@ class Channel:
                 handle_incomplete_block(address)
                 raise KeyError
 
-            if utils.stream_is_mmap(stream, mapped):
+            if mapped:
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(stream, address)
 
                 if address + self.block_len > file_limit:
@@ -1570,7 +1569,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
 
             mapped = kwargs.get("mapped", False) or not is_file_like(stream)
 
-            if utils.stream_is_mmap(stream, mapped):
+            if mapped:
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(stream, address)
 
                 if self.id != b"##CA":
@@ -2046,7 +2045,7 @@ class ChannelGroup:
                 handle_incomplete_block(address)
                 raise KeyError
 
-            if utils.stream_is_mmap(stream, mapped):
+            if mapped:
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(stream, address)
 
                 if address + self.block_len > file_limit:
@@ -2153,7 +2152,7 @@ class ChannelGroup:
                 if address + v4c.SI_BLOCK_SIZE > file_limit:
                     source = None
                 else:
-                    if utils.stream_is_mmap(stream, mapped):
+                    if mapped:
                         raw_bytes = stream[address : address + v4c.SI_BLOCK_SIZE]
                     else:
                         stream.seek(address)
@@ -2916,7 +2915,6 @@ class ChannelConversion(_ChannelConversionBase):
                                     stream=stream,
                                     mapped=mapped,
                                     decode=False,
-                                    
                                     file_limit=file_limit,
                                 )
                             elif _id == b"##CC":
@@ -2924,7 +2922,6 @@ class ChannelConversion(_ChannelConversionBase):
                                     address=address,
                                     stream=stream,
                                     mapped=mapped,
-                                    
                                     file_limit=file_limit,
                                 )
                                 refs[f"text_{i}"] = cc_block
@@ -2980,28 +2977,23 @@ class ChannelConversion(_ChannelConversionBase):
                         for key in (f"input_{i}_addr", f"output_{i}_addr"):
                             address = typing.cast(int, self[key])
 
-                            if address:
-                                refs[key] = get_text_v4(
-                                    address=address,
-                                    stream=stream,
-                                    mapped=mapped,
-                                    decode=False,
-                                    
-                                    file_limit=file_limit,
-                                )
-                            else:
-                                refs[key] = b""
-                    address = self.default_addr
-                    if address:
-                        refs["default_addr"] = get_text_v4(
+                            refs[key] = get_text_v4(
                                 address=address,
                                 stream=stream,
                                 mapped=mapped,
                                 decode=False,
+                                
                                 file_limit=file_limit,
                             )
-                    else:
-                        refs["default_addr"] = b""
+                            
+                    address = self.default_addr
+                    refs["default_addr"] = get_text_v4(
+                            address=address,
+                            stream=stream,
+                            mapped=mapped,
+                            decode=False,
+                            file_limit=file_limit,
+                        )
 
         else:
             self.name = kwargs.get("name", "")
@@ -4683,7 +4675,7 @@ class DataBlock:
                 handle_incomplete_block(address)
                 raise KeyError
 
-            if utils.stream_is_mmap(stream, mapped):
+            if mapped:
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(stream, address)
 
                 if address + self.block_len > file_limit:
@@ -5042,7 +5034,7 @@ class DataGroup:
                 handle_incomplete_block(address)
                 raise KeyError
 
-            if utils.stream_is_mmap(stream, mapped):
+            if mapped:
                 (
                     self.id,
                     self.reserved0,
@@ -5219,7 +5211,7 @@ class DataList(_DataListBase):
             mapped = kwargs.get("mapped", False) or not is_file_like(stream)
             file_limit = kwargs.get("file_limit", float("inf"))
 
-            if utils.stream_is_mmap(stream, mapped):
+            if mapped:
                 if self.address + COMMON_SIZE > file_limit:
                     logger.warning(f"incomplete block at 0x{self.address:x} exceeds the file size")
                     self.next_dl_addr = 0
@@ -6006,7 +5998,7 @@ class GuardBlock:
             stream = kwargs["stream"]
             mapped = kwargs.get("mapped", False) or not is_file_like(stream)
 
-            if utils.stream_is_mmap(stream, mapped):
+            if mapped:
                 (
                     self.id,
                     self.reserved0,
@@ -6641,7 +6633,7 @@ class ListData(_ListDataBase):
             mapped = kwargs.get("mapped", False) or not is_file_like(stream)
             file_limit = kwargs.get("file_limit", float("inf"))
 
-            if utils.stream_is_mmap(stream, mapped):
+            if mapped:
                 if self.address + COMMON_SIZE > file_limit:
                     logger.warning(f"incomplete block at 0x{self.address:x} exceeds the file size")
                     self.next_ld_addr = 0
@@ -7183,7 +7175,7 @@ class TextBlock:
             mapped = kwargs.get("mapped", False) or not is_file_like(stream)
             self.address = address = kwargs["address"]
 
-            if utils.stream_is_mmap(stream, mapped):
+            if mapped:
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(stream, address)
 
                 size = self.block_len - COMMON_SIZE

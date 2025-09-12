@@ -67,7 +67,7 @@ from typing_extensions import (
 
 from .. import tool
 from ..signal import InvalidationArray, Signal
-from . import bus_logging_utils, mdf_common, utils
+from . import bus_logging_utils, mdf_common
 from . import v4_constants as v4c
 from .conversion_utils import conversion_transfer
 from .cutils import (
@@ -878,7 +878,7 @@ class MDF4(MDF_Common[Group]):
                 break
 
             if filter_channels:
-                if utils.stream_is_mmap(stream, mapped):
+                if mapped:
                     (
                         id_,
                         links_nr,
@@ -1915,7 +1915,7 @@ class MDF4(MDF_Common[Group]):
         mapped = mapped or not is_file_like(stream)
         uses_ld = False
 
-        if utils.stream_is_mmap(stream, mapped):
+        if mapped:
             if address:
                 if address + COMMON_SHORT_SIZE > self.file_limit:
                     handle_incomplete_block(address, self.original_name)
@@ -1984,7 +1984,7 @@ class MDF4(MDF_Common[Group]):
 
         READ_CHUNK_SIZE = min(READ_CHUNK_SIZE, total_size)
 
-        if utils.stream_is_mmap(stream, mapped):
+        if mapped:
             if original_address := address:
                 if address + COMMON_SHORT_SIZE > self.file_limit:
                     return handle_incomplete_block(original_address, self.original_name)
