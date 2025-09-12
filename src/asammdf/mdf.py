@@ -5359,9 +5359,12 @@ class MDF:
             mdf.close()
             return result
 
+        if use_polars and not POLARS_AVAILABLE:
+            raise MdfException("to_dataframe(use_polars=True) requires polars")
+
         target_byte_order = "<=" if sys.byteorder == "little" else ">="
 
-        data: dict[str, NDArray[Any] | pd.Series[Any]] | dict[str, pl.Series] = {}
+        data: dict[str, NDArray[Any] | pd.Series[Any]] | dict[str, pl.DataFrame] = {}
 
         self._mdf._set_temporary_master(None)
 
@@ -5461,10 +5464,10 @@ class MDF:
 
                 signals[s_index] = sig
 
-            if use_interpolation or use_polars:
+            if use_interpolation:
                 same_master = np.array_equal(master, group_master)
 
-                if not same_master and interpolate_outwards_with_nan and not use_polars:
+                if not same_master and interpolate_outwards_with_nan:
                     idx = np.argwhere((master >= group_master[0]) & (master <= group_master[-1])).flatten()
 
                 cycles = len(group_master)
@@ -5482,7 +5485,7 @@ class MDF:
                     for signal in signals
                 ]
 
-                if not same_master and interpolate_outwards_with_nan and not use_polars:
+                if not same_master and interpolate_outwards_with_nan:
                     for sig in signals:
                         sig.timestamps = sig.timestamps[idx]
                         sig.samples = sig.samples[idx]
@@ -5546,8 +5549,8 @@ class MDF:
                         sig.samples = sig.samples.byteswap().view(sig.samples.dtype.newbyteorder())
 
                     if use_polars:
-                        data = typing.cast(dict[str, pl.Series], data)
-                        data[channel_name] = pl.Series(name=channel_name, values=sig.samples)
+                        data = typing.cast(dict[str, pl.DataFrame], data)
+                        data[channel_name] = pl.DataFrame({"timestamps": sig.timestamps, channel_name: sig.samples})
                     else:
                         data = typing.cast(dict[str, Union[NDArray[Any], "pd.Series[Any]"]], data)
                         data[channel_name] = pd.Series(list(sig.samples), index=sig_index)
@@ -5555,7 +5558,7 @@ class MDF:
                 # arrays and structures
                 elif sig.samples.dtype.names:
                     if use_polars:
-                        data = typing.cast(dict[str, pl.Series], data)
+                        data = typing.cast(dict[str, pl.DataFrame], data)
                         for name, values in components(
                             sig.samples,
                             sig.name,
@@ -5564,7 +5567,7 @@ class MDF:
                             only_basenames=only_basenames,
                             use_polars=use_polars,
                         ):
-                            data[name] = pl.Series(name=name, values=values)
+                            data[name] = pl.DataFrame({"timestamps": sig.timestamps, channel_name: values})
                     else:
                         data = typing.cast(dict[str, Union[NDArray[Any], "pd.Series[Any]"]], data)
                         for name, pd_series in components(
@@ -5594,8 +5597,8 @@ class MDF:
                         sig.samples = sig.samples.byteswap().view(sig.samples.dtype.newbyteorder())
 
                     if use_polars:
-                        data = typing.cast(dict[str, pl.Series], data)
-                        data[channel_name] = pl.Series(name=channel_name, values=sig.samples)
+                        data = typing.cast(dict[str, pl.DataFrame], data)
+                        data[channel_name] = pl.DataFrame({"timestamps": sig.timestamps, channel_name: sig.samples})
                     else:
                         data = typing.cast(dict[str, Union[NDArray[Any], "pd.Series[Any]"]], data)
                         data[channel_name] = pd.Series(sig.samples, index=sig_index)
@@ -5610,24 +5613,33 @@ class MDF:
                         raise Terminated
 
         if use_polars:
-            data = typing.cast(dict[str, pl.Series], data)
+            data = typing.cast(dict[str, pl.DataFrame], data)
 
-            if not POLARS_AVAILABLE:
-                raise MdfException("to_dataframe(use_polars=True) requires polars")
+            # Combine individual signal frames into one large frame, aligned on
+            # the master timestamp
+            #
+            # Use lazyframes to avoid materializing an intermediate frame for
+            # each additional column:
+            lf = pl.LazyFrame({"timestamps": master})
+            for df_sig in data.values():
+                lf = lf.join(
+                    df_sig.lazy(),
+                    on="timestamps",
+                    how="left",
+                    maintain_order="left",
+                )
 
             if numeric_1D_only:
-                data = {col: pl_series for col, pl_series in data.items() if pl_series.dtype.is_numeric()}
+                lf = lf.select(pl.selectors.by_name("timestamps") | pl.selectors.numeric())
 
             if time_as_date:
-                # FIXME: something is wrong with the type of timestamps/master
-                master = self.header.start_time + pd.to_timedelta(master, unit="s")  # type: ignore[assignment]
-            elif time_from_zero and len(master):
-                master = master - master[0]
+                expr_duration = (pl.col("timestamps") * 1e9).round(9).cast(pl.Duration("ns"))
+                expr_abs_time = pl.lit(self.header.start_time, dtype=pl.Datetime("ns")) + expr_duration
+                lf = lf.with_columns(expr_abs_time.alias("timestamps"))
+            elif time_from_zero:
+                lf = lf.with_columns(pl.col("timestamps") - pl.col("timestamps").first())
 
-            # FIXME: something is wrong with the type of timestamps/master
-            data = {"timestamps": master, **data}  # type: ignore[assignment]
-            return pl.DataFrame(data)
-
+            return lf.collect()
         else:
             data = typing.cast(dict[str, Union[NDArray[Any], "pd.Series[Any]"]], data)
 
