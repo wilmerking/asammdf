@@ -324,7 +324,6 @@ def get_text_v4(
     mapped: bool = ...,
     decode: Literal[True] = ...,
     *,
-    tx_map: TxMap,
     file_limit: int | float = float("inf"),
 ) -> str: ...
 
@@ -336,7 +335,6 @@ def get_text_v4(
     mapped: bool = ...,
     *,
     decode: Literal[False],
-    tx_map: TxMap,
     file_limit: int | float = float("inf"),
 ) -> bytes: ...
 
@@ -348,7 +346,6 @@ def get_text_v4(
     mapped: bool = ...,
     decode: bool = ...,
     *,
-    tx_map: TxMap,
     file_limit: int | float = float("inf"),
 ) -> bytes | str: ...
 
@@ -359,7 +356,6 @@ def get_text_v4(
     mapped: bool = False,
     decode: bool = True,
     *,
-    tx_map: TxMap,
     file_limit: int | float = float("inf"),
 ) -> bytes | str:
     """Faster way to extract strings from MDF version 4 TextBlock.
@@ -375,8 +371,6 @@ def get_text_v4(
     decode : bool, default True
         Option to auto-detect character encoding and return decoded str instead
         of raw bytes.
-    tx_map : dict, optional
-        Map that contains interned strings.
 
     Returns
     -------
@@ -384,47 +378,42 @@ def get_text_v4(
         Unicode string or bytes object depending on the `decode` argument.
     """
 
-    if mapped_text := tx_map.get(address, None):
-        return mapped_text.decoded if decode else mapped_text.raw
+
 
     if address == 0:
-        tx_map[address] = MappedText(b"", "")
         return "" if decode else b""
 
     if stream_is_mmap(stream, mapped):
         if address + 16 > file_limit:
             handle_incomplete_block(address)
-            tx_map[address] = MappedText(b"", "")
             return "" if decode else b""
 
         block_id, size = BLK_COMMON_uf(stream, address)
         if block_id not in (b"##TX", b"##MD"):
-            tx_map[address] = MappedText(b"", "")
             return "" if decode else b""
 
         if address + size > file_limit:
             handle_incomplete_block(address)
-            tx_map[address] = MappedText(b"", "")
             return "" if decode else b""
 
         text_bytes = stream[address + 24 : address + size].split(b"\0", 1)[0].strip(b" \r\t\n")
     else:
         if address + 24 > file_limit:
             handle_incomplete_block(address)
-            tx_map[address] = MappedText(b"", "")
             return "" if decode else b""
         stream.seek(address)
         block_id, size = BLK_COMMON_u(stream.read(24))
         if block_id not in (b"##TX", b"##MD"):
-            tx_map[address] = MappedText(b"", "")
             return "" if decode else b""
 
         if address + size > file_limit:
             handle_incomplete_block(address)
-            tx_map[address] = MappedText(b"", "")
             return "" if decode else b""
 
         text_bytes = stream.read(size - 24).split(b"\0", 1)[0].strip(b" \r\t\n")
+
+    if not decode:
+        return text_bytes
 
     try:
         decoded_text = text_bytes.decode("utf-8")
@@ -438,9 +427,7 @@ def get_text_v4(
         else:
             decoded_text = "<!text_decode_error>"
 
-    tx_map[address] = MappedText(text_bytes, decoded_text)
-
-    return decoded_text if decode else text_bytes
+    return decoded_text
 
 
 def sanitize_xml(text: str) -> str:

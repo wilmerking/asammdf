@@ -567,7 +567,6 @@ class MDF4(MDF_Common[Group]):
                     stream=stream,
                     mapped=mapped,
                     si_map=self._si_map,
-                    tx_map=self._interned_strings,
                     file_limit=self.file_limit,
                 )
                 self._cg_map[cg_addr] = dg_cntr
@@ -742,7 +741,6 @@ class MDF4(MDF_Common[Group]):
                                         stream=stream,
                                         address=cc_addr,
                                         mapped=mapped,
-                                        tx_map={},
                                         file_limit=self.file_limit,
                                     )
                                     dep.axis_conversions.append(conv)
@@ -894,14 +892,13 @@ class MDF4(MDF_Common[Group]):
                     ) = v4c.CHANNEL_FILTER_uf(stream, ch_addr)
                     channel_type = stream[ch_addr + v4c.COMMON_SIZE + links_nr * 8]
                     name = get_text_v4(
-                        name_addr, stream, mapped=mapped, tx_map=self._interned_strings, file_limit=self.file_limit
+                        name_addr, stream, mapped=mapped, file_limit=self.file_limit
                     )
                     if use_display_names:
                         comment = get_text_v4(
                             comment_addr,
                             stream,
                             mapped=mapped,
-                            tx_map=self._interned_strings,
                             file_limit=self.file_limit,
                         )
                         display_names = extract_display_names(comment)
@@ -922,7 +919,7 @@ class MDF4(MDF_Common[Group]):
                     stream.seek(ch_addr + v4c.COMMON_SIZE + links_nr * 8)
                     channel_type = stream.read(1)[0]
                     name = get_text_v4(
-                        name_addr, stream, mapped=mapped, tx_map=self._interned_strings, file_limit=self.file_limit
+                        name_addr, stream, mapped=mapped, file_limit=self.file_limit
                     )
 
                     if use_display_names:
@@ -930,7 +927,6 @@ class MDF4(MDF_Common[Group]):
                             comment_addr,
                             stream,
                             mapped=mapped,
-                            tx_map=self._interned_strings,
                             file_limit=self.file_limit,
                         )
                         display_names = extract_display_names(comment)
@@ -957,7 +953,6 @@ class MDF4(MDF_Common[Group]):
                             comment_addr,
                             stream,
                             mapped=mapped,
-                            tx_map=self._interned_strings,
                             file_limit=self.file_limit,
                         )
                     channel = Channel(
@@ -968,7 +963,6 @@ class MDF4(MDF_Common[Group]):
                         at_map=self._attachments_map,
                         use_display_names=use_display_names,
                         mapped=mapped,
-                        tx_map=self._interned_strings,
                         parsed_strings=(name, display_names, comment),
                         file_limit=self.file_limit,
                     )
@@ -1018,7 +1012,6 @@ class MDF4(MDF_Common[Group]):
                     at_map=self._attachments_map,
                     use_display_names=use_display_names,
                     mapped=mapped,
-                    tx_map=self._interned_strings,
                     parsed_strings=None,
                     file_limit=self.file_limit,
                 )
