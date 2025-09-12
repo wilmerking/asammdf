@@ -370,6 +370,8 @@ class MDF4(MDF_Common[Group]):
 
         self._column_storage = False
 
+        self._units_map = {}
+
         super().__init__(kwargs.get("raise_on_multiple_occurrences", GLOBAL_OPTIONS["raise_on_multiple_occurrences"]))
 
         if name:
@@ -807,6 +809,7 @@ class MDF4(MDF_Common[Group]):
         self._si_map.clear()
         self._ch_map.clear()
         self._cc_map.clear()
+        self._units_map.clear()
 
         self._attachments_map.clear()
 
@@ -1011,6 +1014,7 @@ class MDF4(MDF_Common[Group]):
                     mapped=mapped,
                     parsed_strings=None,
                     file_limit=self.file_limit,
+                    units_map=self._units_map
                 )
 
             if channel.data_type not in VALID_DATA_TYPES:

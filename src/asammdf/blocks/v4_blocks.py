@@ -745,7 +745,12 @@ class Channel:
                 else:
                     self.name, self.display_names, self.comment = parsed_strings
 
-                self.unit = get_text_v4(self.unit_addr, stream, mapped=mapped, file_limit=file_limit)
+                cache = kwargs.get("units_map", {})
+                if self.unit_addr in cache:
+                    self.unit = cache[self.unit_addr]
+                else:
+                    self.unit = get_text_v4(self.unit_addr, stream, mapped=mapped, file_limit=file_limit)
+                    cache[self.unit_addr] = self.unit
 
                 address = self.conversion_addr
                 if address:
@@ -2985,7 +2990,7 @@ class ChannelConversion(_ChannelConversionBase):
                                 
                                 file_limit=file_limit,
                             )
-                            
+
                     address = self.default_addr
                     refs["default_addr"] = get_text_v4(
                             address=address,
