@@ -11456,16 +11456,6 @@ class MDF4(MDF_Common[Group]):
             except:
                 pass
 
-            self.groups.clear()
-            del self.header
-            del self.identification
-            self.file_history.clear()
-            self.channels_db.clear()
-            self.masters_db.clear()
-            self.attachments.clear()
-
-            self._ch_map.clear()
-
             self._tempfile = NamedTemporaryFile(dir=self.temporary_folder)
             self._file = open(self.name, "rb")
             self._read(self._file)
