@@ -30,7 +30,6 @@ from typing_extensions import (
     Any,
     Buffer,
     LiteralString,
-    NamedTuple,
     overload,
     ParamSpec,
     Protocol,
@@ -307,14 +306,6 @@ def get_text_v3(address: int, stream: FileLike | mmap.mmap, mapped: bool = False
         text = text_bytes
 
     return text
-
-
-class MappedText(NamedTuple):
-    raw: bytes
-    decoded: str
-
-
-TxMap = dict[int, MappedText]
 
 
 @overload

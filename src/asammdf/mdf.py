@@ -4402,7 +4402,7 @@ class MDF:
                         source = v4_cg.acq_source_addr
                         if source:
                             source_information = SourceInformation(
-                                address=source, stream=stream, mapped=False, tx_map={}, file_limit=mdf._mdf.file_limit
+                                address=source, stream=stream, mapped=False, file_limit=mdf._mdf.file_limit
                             )
                             for addr in (
                                 source_information.name_addr,
@@ -4424,7 +4424,7 @@ class MDF:
                         source = v4_ch.source_addr
                         if source:
                             source_information = SourceInformation(
-                                address=source, stream=stream, mapped=False, tx_map={}, file_limit=mdf._mdf.file_limit
+                                address=source, stream=stream, mapped=False, file_limit=mdf._mdf.file_limit
                             )
                             for addr in (
                                 source_information.name_addr,
@@ -4439,7 +4439,7 @@ class MDF:
                         conv = v4_ch.conversion_addr
                         if conv:
                             v4_conv = v4b.ChannelConversion(
-                                address=conv, stream=stream, mapped=False, tx_map={}, file_limit=mdf._mdf.file_limit
+                                address=conv, stream=stream, mapped=False, file_limit=mdf._mdf.file_limit
                             )
                             for addr in (
                                 v4_conv.name_addr,

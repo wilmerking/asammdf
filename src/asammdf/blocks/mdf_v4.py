@@ -113,7 +113,6 @@ from .utils import (
     SignalDataBlockInfo,
     Terminated,
     THREAD_COUNT,
-    TxMap,
     UINT8_uf,
     UINT16_uf,
     UINT32_p,
@@ -318,7 +317,6 @@ class MDF4(MDF_Common[Group]):
         self._cg_map: dict[int, int] = {}
         self._cn_data_map: dict[int, tuple[int, int]] = {}
         self._dbc_cache: dict[int, CanMatrix] = {}
-        self._interned_strings: TxMap = {}
 
         self._closed = False
 
@@ -810,7 +808,6 @@ class MDF4(MDF_Common[Group]):
         self._ch_map.clear()
         self._cc_map.clear()
 
-        self._interned_strings.clear()
         self._attachments_map.clear()
 
         if progress is not None:
