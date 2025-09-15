@@ -20,6 +20,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 keywords = [
     "read",
@@ -94,7 +95,7 @@ test-command = "pytest {project}/test"
 build-frontend = "build"
 archs = ["auto64"]                        # only build for 64bit architectures
 # skip pypy and irrelevant architectures
-skip = ["pp*", "*_ppc64le", "*-musllinux*", "*_s390x", "cp314*"]
+skip = ["pp*", "*_ppc64le", "*-musllinux*", "*_s390x"]
 
 [tool.mypy]
 files = "."
