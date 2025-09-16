@@ -5822,7 +5822,7 @@ class MDF:
                             only_basenames=only_basenames,
                             use_polars=use_polars,
                         ):
-                            data[name] = pl.DataFrame({"timestamps": sig.timestamps, channel_name: values})
+                            data[name] = pl.DataFrame({"timestamps": sig.timestamps, name: values})
                     else:
                         data = typing.cast(dict[str, Union[NDArray[Any], "pd.Series[Any]"]], data)
                         for name, pd_series in components(
