@@ -405,6 +405,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.clear_channels_btn.clicked.connect(self.clear_channels)
             self.select_all_btn.clicked.connect(self.select_all_channels)
 
+            self.cut_inplace.stateChanged.connect(self.cut_inplace_changed)
+
             self.info.setColumnWidth(0, 200)
 
             self.aspects.setCurrentIndex(0)
@@ -2568,7 +2570,8 @@ MultiRasterSeparator;&
             "needs_cut": self.cut_group.isChecked(),
             "cut_start": self.cut_start.value(),
             "cut_stop": self.cut_stop.value(),
-            "cut_time_from_zero": self.cut_time_from_zero.checkState() == QtCore.Qt.CheckState.Checked,
+            "cut_time_from_zero": self.cut_time_from_zero.checkState() == QtCore.Qt.CheckState.Checked and self.cut_time_from_zero.isEnabled(),
+            "cut_inplace": self.cut_inplace.checkState() == QtCore.Qt.CheckState.Checked,
             "whence": int(self.whence.checkState() == QtCore.Qt.CheckState.Checked),
             "needs_resample": self.resample_group.isChecked(),
             "raster_type_step": self.raster_type_step.isChecked(),
@@ -2818,7 +2821,11 @@ MultiRasterSeparator;&
             progress.signals.setLabelText.emit(f"Cutting from {opts.cut_start}s to {opts.cut_stop}s")
 
             # cut self.mdf
-            target = self.mdf.cut if mdf is None else mdf.cut
+            if opts.cut_inplace:
+                target = self.mdf.cut_inplace if mdf is None else mdf.cut_inplace
+            else:
+                target = self.mdf.cut if mdf is None else mdf.cut
+
             result = target(
                 start=opts.cut_start,
                 stop=opts.cut_stop,
@@ -3436,3 +3443,6 @@ MultiRasterSeparator;&
 
         if hide_embedded_btn:
             self.load_embedded_channel_list_btn.setDisabled(True)
+
+    def cut_inplace_changed(self, state):
+        self.cut_time_from_zero.setDisabled(self.cut_inplace.isChecked())

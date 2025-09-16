@@ -31,6 +31,18 @@ import pandas as pd
 from pandas import DataFrame
 from typing_extensions import Any, LiteralString, Never, overload, TypedDict, Unpack
 
+try:
+    from isal.isal_zlib import decompress
+except ImportError:
+    from zlib import decompress
+import tempfile
+
+from lz4.frame import decompress as lz_decompress
+from numpy import (
+    frombuffer,
+    uint8,
+)
+
 from . import tool
 from .blocks import mdf_v2, mdf_v3, mdf_v4
 from .blocks import v2_v3_blocks as v3b
@@ -1347,6 +1359,187 @@ class MDF:
         out._transfer_metadata(self, message=f"Cut from {start_} to {stop_}")
 
         return out
+    
+    def cut_inplace(
+        self,
+        start: float | None = None,
+        stop: float | None = None,
+        whence: int = 0,
+        progress: Any | None = None,
+    ) -> "MDF":
+        """Cut `MDF`. `start` and `stop` are absolute values or values relative
+        to the first timestamp depending on the `whence` argument. After the cut is done
+        the actual start and stop timestamps may differ compared to the input values;
+        this is caused by the fact that the original data blocks are not split. This
+        function is a lot faster than `cut`.
+
+        .. versionadded:: 8.7.0
+
+        Parameters
+        ----------
+        start : float, optional
+            Start time; default is None. If None, the start of the measurement
+            is used.
+        stop : float, optional
+            Stop time; default is None. If None, the end of the measurement is
+            used.
+        whence : int, default 0
+            How to search for the start and stop values.
+
+            * 0 : absolute
+            * 1 : relative to first timestamp
+
+        Returns
+        -------
+        out : MDF
+            New `MDF` object if the inplace cut cannot be done, or `self` if 
+            the inplace cut is possible
+
+        """
+
+        if any(gp.uses_ld for gp in self.groups) or self.version < "4.00":
+            return self.cut(start=start, stop=stop, whence=whence, progress=progress)
+
+        if start is None and stop is None:
+            return self
+
+        if whence == 1:
+            timestamps: list[float] = []
+            for group in self.virtual_groups:
+                master = self._mdf.get_master(group, record_offset=0, record_count=1)
+                if master.size:
+                    timestamps.append(master[0])
+
+            if timestamps:
+                first_timestamp = np.amin(timestamps)
+            else:
+                first_timestamp = 0
+
+            if start is not None:
+                start += first_timestamp
+            if stop is not None:
+                stop += first_timestamp
+
+        groups_nr = len(self.groups)
+
+        if progress is not None:
+            if callable(progress):
+                progress(0, groups_nr)
+            else:
+                progress.signals.setValue.emit(0)
+                progress.signals.setMaximum.emit(groups_nr)
+
+        for i, group in enumerate(self.groups):
+            
+            channel_group = group.channel_group
+            record_size = channel_group.samples_byte_nr + channel_group.invalidation_bytes_nr
+
+            stream: FileLike | mmap.mmap | tempfile._TemporaryFileWrapper[bytes]
+            if group.data_location == v4c.LOCATION_ORIGINAL_FILE:
+                stream = typing.cast(FileLike | mmap.mmap, self._mdf._file)
+            else:
+                stream = self._mdf._tempfile
+
+            read = stream.read
+            seek = stream.seek
+
+            new_blocks = []
+            new_cycles_nr = 0
+
+            for j, info in enumerate(group.data_blocks):
+                if progress and progress.stop:
+                    raise Terminated
+                (
+                    address,
+                    original_size,
+                    compressed_size,
+                    block_type,
+                    param,
+                    block_limit,
+                ) = (
+                    info.address,
+                    typing.cast(int, info.original_size),
+                    info.compressed_size,
+                    info.block_type,
+                    info.param,
+                    info.block_limit,
+                )
+
+                seek(address)
+                new_data: bytes | memoryview[int] = read(typing.cast(int, compressed_size))
+
+                match block_type:
+                    case v4c.DZ_BLOCK_DEFLATE:
+                        new_data = decompress(new_data, bufsize=original_size)
+                    case v4c.DZ_BLOCK_TRANSPOSED:
+                        new_data = decompress(new_data, bufsize=original_size)
+                        cols = typing.cast(int, param)
+                        lines = original_size // cols
+                        matrix_size = lines * cols
+
+                        if matrix_size != original_size:
+                            new_data = (
+                                frombuffer(new_data[:matrix_size], dtype=uint8)
+                                .reshape((cols, lines))
+                                .T.ravel()
+                                .tobytes()
+                                + new_data[matrix_size:]
+                            )
+                        else:
+                            new_data = frombuffer(new_data, dtype=uint8).reshape((cols, lines)).T.ravel().tobytes()
+
+                    case v4c.DZ_BLOCK_LZ:
+                        new_data = lz_decompress(new_data)
+
+                if block_limit is not None:
+                    new_data = new_data[:block_limit]
+
+                count = len(new_data) // record_size
+
+                fragment = Fragment(
+                    new_data,
+                    0,
+                    count,
+                    None,
+                )
+
+                master = self.get_master(i, data=fragment, one_piece=True)
+
+                if not len(master):
+                    continue
+
+                if start is None:
+                    if master[0] > stop:
+                        break
+
+                elif stop is None:
+                    if master[-1] < start:
+                        continue
+                else:
+                    if master[0] > stop:
+                        break
+                    elif master[-1] < start:
+                        continue
+
+                print(i, j, master[0], master[-1])
+
+                new_blocks.append(info)
+                new_cycles_nr +=count
+
+            channel_group.cycles_nr = new_cycles_nr
+            group.data_blocks = new_blocks
+
+            if progress is not None:
+                if callable(progress):
+                    progress(i + 1, groups_nr)
+                else:
+                    progress.signals.setValue.emit(i + 1)
+
+                    if progress.stop:
+                        print("return terminated")
+                        raise Terminated
+                    
+        return self
 
     @overload
     def get(

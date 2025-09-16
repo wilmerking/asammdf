@@ -16,6 +16,7 @@ import struct
 import sys
 from textwrap import indent
 from threading import Thread
+import time
 from time import sleep
 import traceback
 from traceback import format_exc
@@ -1214,6 +1215,7 @@ def generate_python_function_globals() -> dict:
         "pd": pd,
         "random": random,
         "struct": struct,
+        "time": time,
         "__builtins__": _BUILTINS,
     }
     try:
