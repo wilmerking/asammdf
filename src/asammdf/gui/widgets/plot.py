@@ -4749,9 +4749,10 @@ class PlotGraphics(pg.PlotWidget):
                     stop - 0.1 * (stop - start),
                 )
 
-                if self.cursor1 is not None and abs(self.cursor1.value() - stop) >= 0.1 * view_range:
+                if self.cursor1 is not None:
+                    if abs(self.cursor1.value() - stop) >= 0.1 * view_range:
+                        self.region.setRegion(tuple(sorted((self.cursor1.value(), stop))))
                     self.cursor1.hide()
-                    self.region.setRegion(tuple(sorted((self.cursor1.value(), stop))))
                 else:
                     self.region.setRegion((start, stop))
 
@@ -5598,6 +5599,8 @@ class PlotGraphics(pg.PlotWidget):
 
             if self.region is not None:
                 self.region.paint(paint, plot=self, uuid=self.current_uuid)
+            elif self.cursor1 is not None and self.cursor1.isVisible():
+                self.cursor1.paint(paint, plot=self, uuid=self.current_uuid)
 
             for bookmark in self._bookmarks:
                 if bookmark.visible:
