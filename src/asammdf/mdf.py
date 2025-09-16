@@ -5787,7 +5787,7 @@ class MDF:
                     sig.timestamps = sig.timestamps.byteswap().view(sig.timestamps.dtype.newbyteorder())
 
                 if use_polars:
-                    sig_index = index
+                    sig_index = index if len(sig) == size else sig.timestamps
                 else:
                     sig_index = index if len(sig) == size else pd.Index(sig.timestamps, tupleize_cols=False)
 
@@ -5805,7 +5805,7 @@ class MDF:
 
                     if use_polars:
                         data = typing.cast(dict[str, pl.DataFrame], data)
-                        data[channel_name] = pl.DataFrame({"timestamps": sig.timestamps, channel_name: sig.samples})
+                        data[channel_name] = pl.DataFrame({"timestamps": sig_index, channel_name: sig.samples})
                     else:
                         data = typing.cast(dict[str, Union[NDArray[Any], "pd.Series[Any]"]], data)
                         data[channel_name] = pd.Series(list(sig.samples), index=sig_index)
@@ -5822,7 +5822,7 @@ class MDF:
                             only_basenames=only_basenames,
                             use_polars=use_polars,
                         ):
-                            data[name] = pl.DataFrame({"timestamps": sig.timestamps, name: values})
+                            data[name] = pl.DataFrame({"timestamps": sig_index, name: values})
                     else:
                         data = typing.cast(dict[str, Union[NDArray[Any], "pd.Series[Any]"]], data)
                         for name, pd_series in components(
@@ -5853,7 +5853,7 @@ class MDF:
 
                     if use_polars:
                         data = typing.cast(dict[str, pl.DataFrame], data)
-                        data[channel_name] = pl.DataFrame({"timestamps": sig.timestamps, channel_name: sig.samples})
+                        data[channel_name] = pl.DataFrame({"timestamps": sig_index, channel_name: sig.samples})
                     else:
                         data = typing.cast(dict[str, Union[NDArray[Any], "pd.Series[Any]"]], data)
                         data[channel_name] = pd.Series(sig.samples, index=sig_index)
