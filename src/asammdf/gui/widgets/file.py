@@ -2833,7 +2833,7 @@ MultiRasterSeparator;&
                 whence=opts.whence,
                 version=opts.mdf_version if output_format == "MDF" else "4.10",
                 time_from_zero=opts.cut_time_from_zero,
-                inplace=not opts.cut_time_from_zero
+                inplace=not opts.cut_time_from_zero,
                 progress=progress,
             )
 
