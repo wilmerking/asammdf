@@ -262,13 +262,10 @@ class Ui_file_widget(object):
         self.gridLayout_19.setSpacing(1)
         self.gridLayout_19.setObjectName(u"gridLayout_19")
         self.gridLayout_19.setContentsMargins(1, 1, 1, 1)
-        self.cut_start = QDoubleSpinBox(self.cut_group)
-        self.cut_start.setObjectName(u"cut_start")
-        self.cut_start.setDecimals(6)
-        self.cut_start.setMinimum(-9999999999999999635896294965248.000000000000000)
-        self.cut_start.setMaximum(999999999999999983222784.000000000000000)
+        self.label_59 = QLabel(self.cut_group)
+        self.label_59.setObjectName(u"label_59")
 
-        self.gridLayout_19.addWidget(self.cut_start, 0, 1, 1, 1)
+        self.gridLayout_19.addWidget(self.label_59, 0, 0, 1, 1)
 
         self.cut_stop = QDoubleSpinBox(self.cut_group)
         self.cut_stop.setObjectName(u"cut_stop")
@@ -278,30 +275,28 @@ class Ui_file_widget(object):
 
         self.gridLayout_19.addWidget(self.cut_stop, 1, 1, 1, 1)
 
-        self.label_59 = QLabel(self.cut_group)
-        self.label_59.setObjectName(u"label_59")
-
-        self.gridLayout_19.addWidget(self.label_59, 0, 0, 1, 1)
-
-        self.cut_time_from_zero = QCheckBox(self.cut_group)
-        self.cut_time_from_zero.setObjectName(u"cut_time_from_zero")
-
-        self.gridLayout_19.addWidget(self.cut_time_from_zero, 5, 0, 1, 2)
-
         self.label_60 = QLabel(self.cut_group)
         self.label_60.setObjectName(u"label_60")
 
         self.gridLayout_19.addWidget(self.label_60, 1, 0, 1, 1)
+
+        self.cut_start = QDoubleSpinBox(self.cut_group)
+        self.cut_start.setObjectName(u"cut_start")
+        self.cut_start.setDecimals(6)
+        self.cut_start.setMinimum(-9999999999999999635896294965248.000000000000000)
+        self.cut_start.setMaximum(999999999999999983222784.000000000000000)
+
+        self.gridLayout_19.addWidget(self.cut_start, 0, 1, 1, 1)
 
         self.whence = QCheckBox(self.cut_group)
         self.whence.setObjectName(u"whence")
 
         self.gridLayout_19.addWidget(self.whence, 3, 0, 1, 2)
 
-        self.cut_inplace = QCheckBox(self.cut_group)
-        self.cut_inplace.setObjectName(u"cut_inplace")
+        self.cut_time_from_zero = QCheckBox(self.cut_group)
+        self.cut_time_from_zero.setObjectName(u"cut_time_from_zero")
 
-        self.gridLayout_19.addWidget(self.cut_inplace, 4, 0, 1, 2)
+        self.gridLayout_19.addWidget(self.cut_time_from_zero, 4, 0, 1, 2)
 
 
         self.verticalLayout_3.addWidget(self.cut_group)
@@ -1073,7 +1068,7 @@ class Ui_file_widget(object):
 
         self.retranslateUi(file_widget)
 
-        self.aspects.setCurrentIndex(1)
+        self.aspects.setCurrentIndex(0)
         self.output_options.setCurrentIndex(0)
         self.quoting.setCurrentIndex(1)
         self.quoting_bus.setCurrentIndex(1)
@@ -1157,16 +1152,12 @@ class Ui_file_widget(object):
         self.advanced_serch_filter_btn.setText("")
         self.label.setText(QCoreApplication.translate("file_widget", u"All selected channels", None))
         self.cut_group.setTitle(QCoreApplication.translate("file_widget", u"Cut", None))
-        self.cut_start.setSuffix(QCoreApplication.translate("file_widget", u"s", None))
-        self.cut_stop.setSuffix(QCoreApplication.translate("file_widget", u"s", None))
         self.label_59.setText(QCoreApplication.translate("file_widget", u"Start", None))
-        self.cut_time_from_zero.setText(QCoreApplication.translate("file_widget", u"Time from 0s", None))
+        self.cut_stop.setSuffix(QCoreApplication.translate("file_widget", u"s", None))
         self.label_60.setText(QCoreApplication.translate("file_widget", u"End", None))
+        self.cut_start.setSuffix(QCoreApplication.translate("file_widget", u"s", None))
         self.whence.setText(QCoreApplication.translate("file_widget", u"Start relative to first time stamp", None))
-#if QT_CONFIG(tooltip)
-        self.cut_inplace.setToolTip(QCoreApplication.translate("file_widget", u"<html><head/><body><p>This can be a lot faster than the regular cut function; the downsides are that the actual cut interval may be different than the given start and stop values, and that it is not possbile to set the time from 0s option.</p></body></html>", None))
-#endif // QT_CONFIG(tooltip)
-        self.cut_inplace.setText(QCoreApplication.translate("file_widget", u"Inplace cut ", None))
+        self.cut_time_from_zero.setText(QCoreApplication.translate("file_widget", u"Time from 0s", None))
         self.resample_group.setTitle(QCoreApplication.translate("file_widget", u"Resample", None))
         self.raster_type_step.setText(QCoreApplication.translate("file_widget", u"step", None))
         self.raster.setSuffix(QCoreApplication.translate("file_widget", u"s", None))

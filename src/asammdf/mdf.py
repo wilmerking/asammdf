@@ -37,6 +37,7 @@ except ImportError:
     from zlib import decompress
 import tempfile
 
+from lz4.frame import compress as lz_compress
 from lz4.frame import decompress as lz_decompress
 from numpy import (
     frombuffer,
@@ -76,6 +77,7 @@ from .blocks.utils import (
     components,
     csv_bytearray2hex,
     csv_int2hex,
+    DataBlockInfo,
     downcast,
     FileLike,
     Fragment,
@@ -1105,6 +1107,7 @@ class MDF:
         version: str | Version | None = None,
         include_ends: bool = True,
         time_from_zero: bool = False,
+        inplace: bool = False,
         progress: Any | None = None,
     ) -> "MDF":
         """Cut `MDF`. `start` and `stop` are absolute values or values relative
@@ -1134,12 +1137,26 @@ class MDF:
             then the new samples will be computed using interpolation.
         time_from_zero : bool, default False
             Start timestamps from 0s in the cut measurement.
+        inplace : bool, default False
+            Cut the measurement inplace modifying the original `MDF` object. This argument
+            overrides the arguments `version` (gets set to self.version), 
+            `include_ends` (gets set to False) and `time_from_zero` (gets set to False) and is
+            done only for MDF v4 files.
+
+            .. versionadded:: 8.7.0
 
         Returns
         -------
         out : MDF
             New `MDF` object.
         """
+
+        if (
+            inplace 
+            and all(not gp.uses_ld for gp in self.groups) 
+            and self.version>= "4.00"
+        ):
+            return self._cut_inplace(start=start, stop=stop, whence=whence, progress=progress)
 
         if version is None:
             version = self.version
@@ -1360,7 +1377,7 @@ class MDF:
 
         return out
     
-    def cut_inplace(
+    def _cut_inplace(
         self,
         start: float | None = None,
         stop: float | None = None,
@@ -1368,9 +1385,7 @@ class MDF:
         progress: Any | None = None,
     ) -> "MDF":
         """Cut `MDF`. `start` and `stop` are absolute values or values relative
-        to the first timestamp depending on the `whence` argument. After the cut is done
-        the actual start and stop timestamps may differ compared to the input values;
-        this is caused by the fact that the original data blocks are not split. This
+        to the first timestamp depending on the `whence` argument. This
         function is a lot faster than `cut`.
 
         .. versionadded:: 8.7.0
@@ -1396,9 +1411,6 @@ class MDF:
             the inplace cut is possible
 
         """
-
-        if any(gp.uses_ld for gp in self.groups) or self.version < "4.00":
-            return self.cut(start=start, stop=stop, whence=whence, progress=progress)
 
         if start is None and stop is None:
             return self
@@ -1439,6 +1451,10 @@ class MDF:
                 stream = typing.cast(FileLike | mmap.mmap, self._mdf._file)
             else:
                 stream = self._mdf._tempfile
+
+            out_seek = self._mdf._tempfile.seek
+            out_tell = self._mdf._tempfile.tell
+            out_write = self._mdf._tempfile.write
 
             read = stream.read
             seek = stream.seek
@@ -1508,26 +1524,72 @@ class MDF:
                 if not len(master):
                     continue
 
+                needs_cutting = True
+
                 if start is None:
+                    start_index = 0
                     if master[0] > stop:
                         break
+                    else:
+                        fragment_stop = min(stop, master[-1])
+                        stop_index = np.searchsorted(master, fragment_stop, side="right")
+                        if stop_index == len(master):
+                            needs_cutting = False
 
                 elif stop is None:
+                    start_index = 0
                     if master[-1] < start:
                         continue
+                    else:
+                        fragment_start = max(start, master[0])
+                        start_index = np.searchsorted(master, fragment_start, side="left")
+                        stop_index = len(master)
+                        if start_index == 0:
+                            needs_cutting = False
                 else:
                     if master[0] > stop:
                         break
                     elif master[-1] < start:
                         continue
+                    else:
+                        fragment_start = max(start, master[0])
+                        start_index = np.searchsorted(master, fragment_start, side="left")
+                        fragment_stop = min(stop, master[-1])
+                        stop_index = np.searchsorted(master, fragment_stop, side="right")
+                        if start_index == 0 and stop_index == len(master):
+                            needs_cutting = False
 
-                print(i, j, master[0], master[-1])
+                if needs_cutting:
+                    data = new_data[start_index * record_size : stop_index * record_size]
+                    count = (stop_index - start_index)
+
+                else:
+                    data = new_data
+                
+                out_seek(0, 2)
+
+                raw_size = len(data)
+                data = lz_compress(data, store_size=True)
+
+                size = len(data)
+                out_seek(0, 2)
+                data_address = out_tell()
+                out_write(data)
+
+                info = DataBlockInfo(
+                        address=data_address,
+                        block_type=v4c.DZ_BLOCK_LZ,
+                        original_size=raw_size,
+                        compressed_size=size,
+                        param=0,
+                    )
 
                 new_blocks.append(info)
-                new_cycles_nr +=count
+                new_cycles_nr += count
 
             channel_group.cycles_nr = new_cycles_nr
             group.data_blocks = new_blocks
+            group.data_location = v4c.LOCATION_TEMPORARY_FILE
 
             if progress is not None:
                 if callable(progress):

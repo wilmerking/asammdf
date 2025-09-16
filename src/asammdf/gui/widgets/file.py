@@ -405,8 +405,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.clear_channels_btn.clicked.connect(self.clear_channels)
             self.select_all_btn.clicked.connect(self.select_all_channels)
 
-            self.cut_inplace.stateChanged.connect(self.cut_inplace_changed)
-
             self.info.setColumnWidth(0, 200)
 
             self.aspects.setCurrentIndex(0)
@@ -2570,8 +2568,7 @@ MultiRasterSeparator;&
             "needs_cut": self.cut_group.isChecked(),
             "cut_start": self.cut_start.value(),
             "cut_stop": self.cut_stop.value(),
-            "cut_time_from_zero": self.cut_time_from_zero.checkState() == QtCore.Qt.CheckState.Checked and self.cut_time_from_zero.isEnabled(),
-            "cut_inplace": self.cut_inplace.checkState() == QtCore.Qt.CheckState.Checked,
+            "cut_time_from_zero": self.cut_time_from_zero.checkState() == QtCore.Qt.CheckState.Checked,
             "whence": int(self.whence.checkState() == QtCore.Qt.CheckState.Checked),
             "needs_resample": self.resample_group.isChecked(),
             "raster_type_step": self.raster_type_step.isChecked(),
@@ -2786,9 +2783,14 @@ MultiRasterSeparator;&
         output_format = opts.output_format
 
         split_size = opts.mdf_split_size if output_format == "MDF" else 0
-        self.mdf.configure(read_fragment_size=split_size)
 
-        mdf = None
+        if opts.needs_cut and not opts.cut_time_from_zero:
+            mdf = mdf_module.MDF(self.mdf.original_name, password=self.mdf._mdf._password,
+                    use_display_names=True)
+            mdf.configure(read_fragment_size=split_size)
+        else:
+            mdf = self.mdf.configure(read_fragment_size=split_size)
+
         integer_interpolation = self.mdf._mdf._integer_interpolation
         float_interpolation = self.mdf._mdf._float_interpolation
 
@@ -2800,18 +2802,22 @@ MultiRasterSeparator;&
             progress.signals.setLabelText.emit(f'Filtering selected channels from "{self.file_name}"')
 
             # filtering self.mdf
-            mdf = self.mdf.filter(
+            result = mdf.filter(
                 channels=channels,
                 version=opts.mdf_version if output_format == "MDF" else "4.10",
                 progress=progress,
             )
 
-            mdf.configure(
+            result.configure(
                 read_fragment_size=split_size,
                 write_fragment_size=split_size,
                 integer_interpolation=integer_interpolation,
                 float_interpolation=float_interpolation,
             )
+
+            if mdf is not self.mdf:
+                mdf.close()
+            mdf = result
 
         if opts.needs_cut:
             icon = QtGui.QIcon()
@@ -2821,32 +2827,26 @@ MultiRasterSeparator;&
             progress.signals.setLabelText.emit(f"Cutting from {opts.cut_start}s to {opts.cut_stop}s")
 
             # cut self.mdf
-            if opts.cut_inplace:
-                target = self.mdf.cut_inplace if mdf is None else mdf.cut_inplace
-            else:
-                target = self.mdf.cut if mdf is None else mdf.cut
-
-            result = target(
+            result = mdf.cut(
                 start=opts.cut_start,
                 stop=opts.cut_stop,
                 whence=opts.whence,
                 version=opts.mdf_version if output_format == "MDF" else "4.10",
                 time_from_zero=opts.cut_time_from_zero,
+                inplace=not opts.cut_time_from_zero
                 progress=progress,
             )
 
-            if mdf is None:
-                mdf = result
-            else:
-                mdf.close()
-                mdf = result
-
-            mdf.configure(
+            result.configure(
                 read_fragment_size=split_size,
                 write_fragment_size=split_size,
                 integer_interpolation=integer_interpolation,
                 float_interpolation=float_interpolation,
             )
+
+            if mdf is not self.mdf:
+                mdf.close()
+            mdf = result
 
         if opts.needs_resample:
             if opts.raster_type_channel:
@@ -2863,27 +2863,23 @@ MultiRasterSeparator;&
             progress.signals.setLabelText.emit(message)
 
             # resample self.mdf
-            target = self.mdf.resample if mdf is None else mdf.resample
-
-            result = target(
+            result = mdf.resample(
                 raster=raster,
                 version=opts.mdf_version if output_format == "MDF" else "4.10",
                 time_from_zero=opts.resample_time_from_zero,
                 progress=progress,
             )
 
-            if mdf is None:
-                mdf = result
-            else:
-                mdf.close()
-                mdf = result
-
-            mdf.configure(
+            result.configure(
                 read_fragment_size=split_size,
                 write_fragment_size=split_size,
                 integer_interpolation=integer_interpolation,
                 float_interpolation=float_interpolation,
             )
+
+            if mdf is not self.mdf:
+                mdf.close()
+            mdf = result
 
         if output_format == "MDF":
             if mdf is None:
@@ -2895,18 +2891,22 @@ MultiRasterSeparator;&
                     f'Converting "{self.file_name}" from {self.mdf.version} to {version}'
                 )
 
-                # convert self.mdf
-                mdf = self.mdf.convert(
-                    version=version,
-                    progress=progress,
-                )
+            # convert self.mdf
+            result = mdf.convert(
+                version=version,
+                progress=progress,
+            )
 
-            mdf.configure(
+            result.configure(
                 read_fragment_size=split_size,
                 write_fragment_size=split_size,
                 integer_interpolation=integer_interpolation,
                 float_interpolation=float_interpolation,
             )
+
+            if mdf is not self.mdf:
+                mdf.close()
+            mdf = result
 
             # then save it
             icon = QtGui.QIcon()
@@ -2976,7 +2976,6 @@ MultiRasterSeparator;&
             if delimiter == "\\t":
                 delimiter = "\t"
 
-            target = self.mdf.export if mdf is None else mdf.export
             kwargs = {
                 "fmt": opts.output_format.lower(),
                 "filename": file_name,
@@ -3003,9 +3002,12 @@ MultiRasterSeparator;&
             }
 
             try:
-                target(**kwargs)
+                mdf.export(**kwargs)
             except:
                 print(format_exc())
+
+        if mdf is not self.mdf:
+            mdf.close()
 
     def raster_search(self, event):
         dlg = AdvancedSearch(
@@ -3443,6 +3445,3 @@ MultiRasterSeparator;&
 
         if hide_embedded_btn:
             self.load_embedded_channel_list_btn.setDisabled(True)
-
-    def cut_inplace_changed(self, state):
-        self.cut_time_from_zero.setDisabled(self.cut_inplace.isChecked())

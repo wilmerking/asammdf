@@ -50,7 +50,7 @@
       <enum>QTabWidget::TabPosition::West</enum>
      </property>
      <property name="currentIndex">
-      <number>1</number>
+      <number>0</number>
      </property>
      <property name="documentMode">
       <bool>false</bool>
@@ -517,19 +517,10 @@
                 <property name="spacing">
                  <number>1</number>
                 </property>
-                <item row="0" column="1">
-                 <widget class="QDoubleSpinBox" name="cut_start">
-                  <property name="suffix">
-                   <string>s</string>
-                  </property>
-                  <property name="decimals">
-                   <number>6</number>
-                  </property>
-                  <property name="minimum">
-                   <double>-9999999999999999635896294965248.000000000000000</double>
-                  </property>
-                  <property name="maximum">
-                   <double>999999999999999983222784.000000000000000</double>
+                <item row="0" column="0">
+                 <widget class="QLabel" name="label_59">
+                  <property name="text">
+                   <string>Start</string>
                   </property>
                  </widget>
                 </item>
@@ -549,24 +540,26 @@
                   </property>
                  </widget>
                 </item>
-                <item row="0" column="0">
-                 <widget class="QLabel" name="label_59">
-                  <property name="text">
-                   <string>Start</string>
-                  </property>
-                 </widget>
-                </item>
-                <item row="5" column="0" colspan="2">
-                 <widget class="QCheckBox" name="cut_time_from_zero">
-                  <property name="text">
-                   <string>Time from 0s</string>
-                  </property>
-                 </widget>
-                </item>
                 <item row="1" column="0">
                  <widget class="QLabel" name="label_60">
                   <property name="text">
                    <string>End</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="0" column="1">
+                 <widget class="QDoubleSpinBox" name="cut_start">
+                  <property name="suffix">
+                   <string>s</string>
+                  </property>
+                  <property name="decimals">
+                   <number>6</number>
+                  </property>
+                  <property name="minimum">
+                   <double>-9999999999999999635896294965248.000000000000000</double>
+                  </property>
+                  <property name="maximum">
+                   <double>999999999999999983222784.000000000000000</double>
                   </property>
                  </widget>
                 </item>
@@ -578,12 +571,9 @@
                  </widget>
                 </item>
                 <item row="4" column="0" colspan="2">
-                 <widget class="QCheckBox" name="cut_inplace">
-                  <property name="toolTip">
-                   <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;This can be a lot faster than the regular cut function; the downsides are that the actual cut interval may be different than the given start and stop values, and that it is not possbile to set the time from 0s option.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-                  </property>
+                 <widget class="QCheckBox" name="cut_time_from_zero">
                   <property name="text">
-                   <string>Inplace cut </string>
+                   <string>Time from 0s</string>
                   </property>
                  </widget>
                 </item>
