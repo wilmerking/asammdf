@@ -5395,7 +5395,6 @@ class PlotGraphics(pg.PlotWidget):
                     paint.drawPath(pth)
 
                     if with_dots:
-                        paint.setRenderHints(paint.RenderHint.Antialiasing, True)
                         pos = np.isfinite(y)
                         y = y[pos]
                         x = x[pos]
@@ -5410,7 +5409,6 @@ class PlotGraphics(pg.PlotWidget):
                         arr[:, 0] = x
                         arr[:, 1] = y
                         paint.drawPoints(poly)
-                        paint.setRenderHints(paint.RenderHint.Antialiasing, False)
 
                 item = self.plot_parent.item_by_uuid(sig.uuid)
                 if not item:
@@ -5512,7 +5510,6 @@ class PlotGraphics(pg.PlotWidget):
                                     x, y, y_range=sig.y_range, x_start=x_start, delta=delta
                                 )
 
-                                paint.setRenderHints(paint.RenderHint.Antialiasing, True)
                                 pen.setWidth(dots_with)
                                 pen.setCapStyle(cap_style)
                                 paint.setPen(pen)
@@ -5526,7 +5523,6 @@ class PlotGraphics(pg.PlotWidget):
                                 arr[:, 0] = x
                                 arr[:, 1] = y
                                 paint.drawPoints(poly)
-                                paint.setRenderHints(paint.RenderHint.Antialiasing, False)
 
             paint.end()
 
