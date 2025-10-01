@@ -270,6 +270,11 @@ class MDF:
 
         .. versionadded:: 8.0.0
 
+    ignore_invalidation_bits : bool, default False
+        Ingore all invalidation bits when extracting signals from the file.
+
+        .. versionadded:: 8.7.0
+
     Examples
     --------
     >>> mdf = MDF(version='3.30')  # new MDF object with version 3.30

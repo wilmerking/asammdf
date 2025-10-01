@@ -29,6 +29,7 @@ class _GlobalOptions(TypedDict):
     raise_on_incomplete_blocks: bool
     raise_on_multiple_occurrences: bool
     fill_0_for_missing_computation_channels: bool
+    ignore_invalidation_bits: bool
 
 
 GLOBAL_OPTIONS: Final[_GlobalOptions] = {
@@ -42,6 +43,7 @@ GLOBAL_OPTIONS: Final[_GlobalOptions] = {
     "raise_on_incomplete_blocks": True,
     "raise_on_multiple_occurrences": True,
     "fill_0_for_missing_computation_channels": False,
+    "ignore_invalidation_bits": False,
 }
 
 _Opt = Literal[
@@ -55,6 +57,7 @@ _Opt = Literal[
     "raise_on_incomplete_blocks",
     "raise_on_multiple_occurrences",
     "fill_0_for_missing_computation_channels",
+    "ignore_invalidation_bits",
 ]
 
 
@@ -72,6 +75,7 @@ def set_global_option(opt: _Opt, value: Any) -> None:
         "raise_on_incomplete_blocks",
         "raise_on_multiple_occurrences",
         "fill_0_for_missing_computation_channels",
+        "ignore_invalidation_bits",
     ):
         GLOBAL_OPTIONS[opt] = bool(value)
     elif opt == "integer_interpolation":

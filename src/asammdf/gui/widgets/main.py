@@ -39,6 +39,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         self.ignore_value2text_conversions = self._settings.value("ignore_value2text_conversions", False, type=bool)
 
         self.display_cg_name = self._settings.value("display_cg_name", False, type=bool)
+        self.ignore_invalidation_bits = self._settings.value("ignore_invalidation_bits", False, type=bool)
 
         self.integer_interpolation = int(
             self._settings.value("mdf/integer_interpolation", "2 - hybrid interpolation")[0]
@@ -197,6 +198,13 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         subplot_action.setCheckable(True)
         subplot_action.toggled.connect(self.set_ignore_value2text_conversions_option)
         subplot_action.setChecked(self.ignore_value2text_conversions)
+        menu.addAction(subplot_action)
+
+        # invalidation bits
+        subplot_action = QtGui.QAction("Ignore invalidation bits", menu)
+        subplot_action.setCheckable(True)
+        subplot_action.toggled.connect(self.set_invalidation_bits_option)
+        subplot_action.setChecked(self.ignore_invalidation_bits)
         menu.addAction(subplot_action)
 
         # Show Channel Group Name
@@ -1307,6 +1315,12 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             self.files.widget(i).ignore_value2text_conversions = state
         self.batch.ignore_value2text_conversions = state
 
+    def set_invalidation_bits_option(self, state):
+        if isinstance(state, str):
+            state = True if state == "true" else False
+        self.ignore_invalidation_bits = state
+        self._settings.setValue("ignore_invalidation_bits", state)
+
     def set_display_cg_name_option(self, state):
         if isinstance(state, str):
             state = True if state == "true" else False
@@ -1373,6 +1387,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                     None,
                     None,
                     self,
+                    ignore_invalidation_bits=self.ignore_invalidation_bits,
                 )
 
             except:

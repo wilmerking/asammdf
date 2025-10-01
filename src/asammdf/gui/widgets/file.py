@@ -140,6 +140,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         databases = kwargs.pop("databases", None)
         show_progress = kwargs.pop("show_progress", True)
         process_bus_logging = kwargs.pop("process_bus_logging", True)
+        ignore_invalidation_bits = kwargs.pop("ignore_invalidation_bits", False)
         mdf = kwargs.pop("mdf", None)
 
         self._progress = None
@@ -263,6 +264,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         "password": password,
                         "use_display_names": True,
                         "process_bus_logging": process_bus_logging,
+                        "ignore_invalidation_bits": ignore_invalidation_bits,
                     }
 
                     try:
@@ -999,7 +1001,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             if self.loaded_display_file[0].is_file():
                 dir = str(self.loaded_display_file[0])
             else:
-                dir = self.default_folder
+                settings = QtCore.QSettings()
+                dir = self.default_folder or settings.value("paths/previous/offline_display_path", "")
 
             file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
                 self,
@@ -1257,6 +1260,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                         self.mdf.original_name = original_file_name
                         self.mdf.uuid = uuid
+
+                settings = QtCore.QSettings()
+                settings.setValue("paths/previous/offline_display_path", str(file_name))
 
             else:
                 return

@@ -344,6 +344,10 @@ class MDF4(MDF_Common[Group]):
             "fill_0_for_missing_computation_channels",
             GLOBAL_OPTIONS["fill_0_for_missing_computation_channels"],
         )
+        self._ignore_invalidation_bits = kwargs.get(
+            "ignore_invalidation_bits",
+            GLOBAL_OPTIONS["ignore_invalidation_bits"],
+        )
 
         self._remove_source_from_channel_names = kwargs.get("remove_source_from_channel_names", False)
         self._password = kwargs.get("password", None)
@@ -7395,7 +7399,7 @@ class MDF4(MDF_Common[Group]):
 
         groups = self.groups
 
-        channel_invalidation_present = channel.flags & (v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT)
+        channel_invalidation_present = (not self._ignore_invalidation_bits) and channel.flags & (v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT)
 
         _dtype = np.dtype(channel.dtype_fmt)
         conditions = [
@@ -7723,7 +7727,7 @@ class MDF4(MDF_Common[Group]):
             ]
         )
 
-        channel_invalidation_present = channel.flags & (v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT)
+        channel_invalidation_present = (not self._ignore_invalidation_bits) and channel.flags & (v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT)
 
         channel_group = grp.channel_group
         samples_size = channel_group.samples_byte_nr + channel_group.invalidation_bytes_nr
@@ -8137,7 +8141,7 @@ class MDF4(MDF_Common[Group]):
         gp_nr = group_index
         ch_nr = channel_index
 
-        channel_invalidation_present = channel.flags & (v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT)
+        channel_invalidation_present = (not self._ignore_invalidation_bits) and channel.flags & (v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT)
 
         data_type = channel.data_type
         channel_type = channel.channel_type
