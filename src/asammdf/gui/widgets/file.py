@@ -146,6 +146,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         self._progress = None
 
         self.loaded_display_file = Path(""), b""
+        self._previous_window_config = b""
 
         super(Ui_file_widget, self).__init__(*args, **kwargs)
         WithMDIArea.__init__(self, comparison=False)
@@ -1013,11 +1014,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         if file_name:
             file_name = Path(file_name).with_suffix(".dspf")
-            file_name.write_text(json.dumps(self.to_config(), indent=2, cls=ExtendedJsonEncoder))
+            file_name.write_text(json.dumps(self.to_config(), indent=2, cls=ExtendedJsonEncoder), encoding='utf-8')
 
             worker = md5()
             worker.update(file_name.read_bytes())
             self.loaded_display_file = file_name, worker.hexdigest()
+            self._previous_window_config = self.loaded_display_file[1]
 
             self.display_file_modified.emit(Path(self.loaded_display_file[0]).name)
 
@@ -1388,6 +1390,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     self.mdi_area.setActiveSubWindow(window)
                     break
 
+        worker = md5()
+        worker.update(json.dumps(self.to_config(), indent=2, cls=ExtendedJsonEncoder).encode('utf-8', errors='ignore'))
+        self._previous_window_config = worker.hexdigest()
+
         self.display_file_modified.emit(Path(self.loaded_display_file[0]).name)
 
         if errors:
@@ -1642,6 +1648,34 @@ MultiRasterSeparator;&
                 iterator += 1
 
     def close(self):
+        # json.dumps(self.to_config(), indent=2, cls=ExtendedJsonEncoder)
+        hexdigest = self._previous_window_config
+        windows = self.mdi_area.subWindowList()
+
+        if windows:
+            unsaved = False
+            
+            if hexdigest:
+                worker = md5()
+                try:
+                    worker.update(json.dumps(self.to_config(), indent=2, cls=ExtendedJsonEncoder).encode('utf-8'))
+                    unsaved = worker.hexdigest() != hexdigest
+                except:
+                    unsaved = False
+
+            else:
+                unsaved = True
+
+            if unsaved:
+                answer = MessageBox.question(
+                    self,
+                    "Unsaved display windows",
+                    "Do you want to save the windows to a display file?"
+                )
+
+                if answer == MessageBox.StandardButton.Yes:
+                    self.save_channel_list()
+
         self.clear_windows(is_closing=True)
 
         if self.mdf is not None:
