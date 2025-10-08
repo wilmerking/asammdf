@@ -699,32 +699,8 @@ class TableModel(QtCore.QAbstractTableModel):
                     has_ranges = bool(self.view.ranges.get(signal.entry, False))
                     if has_ranges:
                         icon = utils.RANGE_INDICATOR_ICON
-                        if icon is None:
-                            utils.RANGE_INDICATOR_ICON = QtGui.QIcon()
-                            utils.RANGE_INDICATOR_ICON.addPixmap(
-                                QtGui.QPixmap(":/paint.png"),
-                                QtGui.QIcon.Mode.Normal,
-                                QtGui.QIcon.State.Off,
-                            )
-
-                            utils.NO_ERROR_ICON = QtGui.QIcon()
-                            utils.NO_ICON = QtGui.QIcon()
-
-                            icon = utils.RANGE_INDICATOR_ICON
                     else:
                         icon = utils.NO_ERROR_ICON
-                        if icon is None:
-                            utils.RANGE_INDICATOR_ICON = QtGui.QIcon()
-                            utils.RANGE_INDICATOR_ICON.addPixmap(
-                                QtGui.QPixmap(":/paint.png"),
-                                QtGui.QIcon.Mode.Normal,
-                                QtGui.QIcon.State.Off,
-                            )
-
-                            utils.NO_ERROR_ICON = QtGui.QIcon()
-                            utils.NO_ICON = QtGui.QIcon()
-
-                            icon = utils.NO_ERROR_ICON
 
                     return icon
 
@@ -1466,6 +1442,30 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         *args,
         **kwargs,
     ):
+        if utils.RANGE_INDICATOR_ICON is None:
+            utils.RANGE_INDICATOR_ICON = QtGui.QIcon()
+            utils.RANGE_INDICATOR_ICON.addPixmap(
+                QtGui.QPixmap(":/paint.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off
+            )
+
+            utils.NO_ICON = QtGui.QIcon()
+            utils.NO_ERROR_ICON = QtGui.QIcon()
+
+            utils.COMPUTED_ICON = QtGui.QIcon()
+            utils.COMPUTED_ICON.addPixmap(
+                QtGui.QPixmap(":/computation.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off
+            )
+
+            utils.USER_EDITED_ICON = QtGui.QIcon()
+            utils.USER_EDITED_ICON.addPixmap(
+                QtGui.QPixmap(":/edit.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off
+            )
+
+            utils.ERROR_ICON = QtGui.QIcon()
+            utils.ERROR_ICON.addPixmap(
+                QtGui.QPixmap(":/error.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off
+            )
+
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 

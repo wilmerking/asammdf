@@ -39,6 +39,9 @@ for key in ("breakpoint", "compile", "eval", "exec", "input", "open"):
 ERROR_ICON = None
 RANGE_INDICATOR_ICON = None
 NO_ERROR_ICON = None
+NO_ICON = None
+COMPUTED_ICON = None
+USER_EDITED_ICON = None
 
 COMPUTED_FUNCTION_ERROR_VALUE = float("nan")
 

@@ -1670,7 +1670,9 @@ MultiRasterSeparator;&
                 answer = MessageBox.question(
                     self,
                     "Unsaved display windows",
-                    "Do you want to save the windows to a display file?"
+                    f"{self.mdf.original_name.name} contains unsaved display changes.\n"
+                    "Do you want to save the windows to a display file?",
+                    detailed_text=f'Complete file path:\n{self.mdf.original_name}',
                 )
 
                 if answer == MessageBox.StandardButton.Yes:
