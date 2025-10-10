@@ -241,19 +241,40 @@ class TreeWidget(QtWidgets.QTreeWidget):
             super().keyPressEvent(event)
 
     def startDrag(self, supportedActions):
-        def get_data(item):
+        def get_data(item, retain_structure=False):
             data = []
             count = item.childCount()
 
             if count:
+                if retain_structure:
+                    working_data = []
+                    data.append(
+                        {
+                            "type": "group",
+                            "name": item.name,
+                            "enabled": True,
+                            "pattern": {},
+                            "ranges": [],
+                            "origin_uuid": item.origin_uuid,
+                            "expanded": False,
+                            "disabled": False,
+                            "channels": working_data,
+                            "group_index": -1,
+                            "channel_index": -1,
+                            "uuid": os.urandom(6).hex(),
+                        }
+                    )
+                else:
+                    working_data = data
+
                 for i in range(count):
                     child = item.child(i)
 
                     if child.childCount():
-                        data.extend(get_data(child))
+                        working_data.extend(get_data(child, retain_structure=retain_structure))
                     else:
                         if child.entry[1] != 0xFFFFFFFFFFFFFFFF:
-                            data.append(
+                            working_data.append(
                                 {
                                     "name": child.name,
                                     "group_index": child.entry[0],
@@ -284,6 +305,11 @@ class TreeWidget(QtWidgets.QTreeWidget):
                     )
 
             return data
+        
+        if QtWidgets.QApplication.queryKeyboardModifiers() & QtCore.Qt.KeyboardModifier.ControlModifier:
+            retain_structure = True
+        else:
+            retain_structure = False
 
         selected_items = self.selectedItems()
 
@@ -291,7 +317,7 @@ class TreeWidget(QtWidgets.QTreeWidget):
 
         data = []
         for item in selected_items:
-            data.extend(get_data(item))
+            data.extend(get_data(item, retain_structure=retain_structure))
 
         data = json.dumps(sorted(data, key=lambda x: (x["name"], x["group_index"], x["channel_index"]))).encode("utf-8")
 
