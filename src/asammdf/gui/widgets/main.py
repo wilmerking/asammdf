@@ -1383,9 +1383,9 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                     self.ignore_value2text_conversions,
                     self.display_cg_name,
                     self.line_interconnect,
-                    1,
                     None,
-                    None,
+                    False,
+                    False,
                     self,
                     ignore_invalidation_bits=self.ignore_invalidation_bits,
                 )
@@ -1399,8 +1399,9 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 self.files.setCurrentIndex(index)
                 widget.open_new_files.connect(self._open_file)
                 widget.full_screen_toggled.connect(self.toggle_fullscreen)
-
                 self.edit_cursor_options()
+
+                widget.finalize_init()
 
     def open_file(self, event):
         system = platform.system().lower()

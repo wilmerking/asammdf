@@ -2078,7 +2078,7 @@ class MDF4(MDF_Common[Group]):
                                 return handle_incomplete_block(original_address, self.original_name)
 
                             # can be a DataBlock
-                            if id_string == block_type:
+                            if id_string != b'##DZ':
                                 size = block_len - 24
                                 if size:
                                     size = min(size, total_size)
@@ -2392,7 +2392,7 @@ class MDF4(MDF_Common[Group]):
                                 return handle_incomplete_block(original_address, self.original_name)
 
                             # can be a DataBlock
-                            if id_string == block_type:
+                            if id_string != b"##DZ":
                                 size = block_len - 24
                                 if size:
                                     addr = addr + COMMON_SIZE
@@ -2431,7 +2431,7 @@ class MDF4(MDF_Common[Group]):
                                             break
 
                             # or a DataZippedBlock
-                            elif id_string == b"##DZ":
+                            else:
                                 stream.seek(addr + v4c.DZ_INFO_COMMON_OFFSET)
                                 (
                                     zip_type,

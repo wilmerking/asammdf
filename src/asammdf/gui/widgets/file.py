@@ -3487,3 +3487,9 @@ MultiRasterSeparator;&
 
         if hide_embedded_btn:
             self.load_embedded_channel_list_btn.setDisabled(True)
+
+    def finalize_init(self):
+        if self.mdi_area.subWindowList():
+            worker = md5()
+            worker.update(json.dumps(self.to_config(), indent=2, cls=ExtendedJsonEncoder).encode('utf-8', errors='ignore'))
+            self._previous_window_config = worker.hexdigest()
