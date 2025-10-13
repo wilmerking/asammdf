@@ -626,18 +626,15 @@ class MDF4(MDF_Common[Group]):
 
             total_size = 0
             inval_total_size = 0
-            block_type = b"##DT"
             record_size = 0
 
             for new_group in new_groups:
                 channel_group = new_group.channel_group
                 if channel_group.flags & v4c.FLAG_CG_REMOTE_MASTER:
-                    block_type = b"##DV"
                     total_size += channel_group.samples_byte_nr * channel_group.cycles_nr
                     inval_total_size += channel_group.invalidation_bytes_nr * channel_group.cycles_nr
                     record_size = channel_group.samples_byte_nr
                 else:
-                    block_type = b"##DT"
                     total_size += (
                         channel_group.samples_byte_nr + channel_group.invalidation_bytes_nr
                     ) * channel_group.cycles_nr
@@ -651,7 +648,6 @@ class MDF4(MDF_Common[Group]):
             data_blocks_info = self._get_data_blocks_info(
                 address=address,
                 stream=stream,
-                block_type=block_type,
                 mapped=mapped,
                 total_size=total_size,
                 inval_total_size=inval_total_size,
@@ -661,7 +657,6 @@ class MDF4(MDF_Common[Group]):
             uses_ld = self._uses_ld(
                 address=address,
                 stream=stream,
-                block_type=block_type,
                 mapped=mapped,
             )
 
@@ -1917,7 +1912,6 @@ class MDF4(MDF_Common[Group]):
         self,
         address: int,
         stream: FileLike | mmap.mmap,
-        block_type: bytes = b"##DT",
         mapped: bool = False,
     ) -> bool:
         mapped = mapped or not is_file_like(stream)
@@ -1941,7 +1935,6 @@ class MDF4(MDF_Common[Group]):
                     uses_ld = self._uses_ld(
                         address,
                         stream,
-                        block_type,
                         mapped,
                     )
         else:
@@ -1965,7 +1958,6 @@ class MDF4(MDF_Common[Group]):
                     uses_ld = self._uses_ld(
                         address,
                         stream,
-                        block_type,
                         mapped,
                     )
 
@@ -1975,7 +1967,6 @@ class MDF4(MDF_Common[Group]):
         self,
         address: int,
         stream: FileLike | mmap.mmap,
-        block_type: bytes = b"##DT",
         mapped: bool = False,
         total_size: int = 0,
         inval_total_size: int = 0,
@@ -2003,7 +1994,7 @@ class MDF4(MDF_Common[Group]):
                     return handle_incomplete_block(original_address, self.original_name)
 
                 # can be a DataBlock
-                if id_string == block_type:
+                if id_string in (b"##DT", b"##DV"):
                     size = block_len - 24
                     if size:
                         size = min(size, total_size)
@@ -2300,7 +2291,6 @@ class MDF4(MDF_Common[Group]):
                     yield from self._get_data_blocks_info(
                         address,
                         stream,
-                        block_type,
                         mapped,
                         total_size,
                         inval_total_size,
@@ -2316,9 +2306,9 @@ class MDF4(MDF_Common[Group]):
 
                 if original_address + block_len > self.file_limit:
                     return handle_incomplete_block(original_address, self.original_name)
-
+                
                 # can be a DataBlock
-                if id_string == block_type:
+                if id_string in (b"##DT", b"##DV"):
                     size = block_len - 24
                     if size:
                         size = min(size, total_size)
@@ -2615,7 +2605,6 @@ class MDF4(MDF_Common[Group]):
                     yield from self._get_data_blocks_info(
                         address,
                         stream,
-                        block_type,
                         mapped,
                         total_size,
                         inval_total_size,
