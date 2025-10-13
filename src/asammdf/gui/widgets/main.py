@@ -11,6 +11,7 @@ import pyqtgraph as pg
 from PySide6 import __version__ as pyside6_version
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from ...blocks.options import set_global_option
 from ...version import __version__ as libversion
 from .. import utils
 from ..dialogs.bus_database_manager import BusDatabaseManagerDialog
@@ -39,6 +40,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         self.ignore_value2text_conversions = self._settings.value("ignore_value2text_conversions", False, type=bool)
 
         self.display_cg_name = self._settings.value("display_cg_name", False, type=bool)
+        self.check_unsaved_display = self._settings.value("check_unsaved_display", True, type=bool)
         self.ignore_invalidation_bits = self._settings.value("ignore_invalidation_bits", False, type=bool)
 
         self.integer_interpolation = int(
@@ -212,6 +214,13 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         subplot_action.setCheckable(True)
         subplot_action.toggled.connect(self.set_display_cg_name_option)
         subplot_action.setChecked(self.display_cg_name)
+        menu.addAction(subplot_action)
+
+        # cehck for unsaved display file
+        subplot_action = QtGui.QAction("Check for unsaved display changes", menu)
+        subplot_action.setCheckable(True)
+        subplot_action.toggled.connect(self.set_check_unsaved_display)
+        subplot_action.setChecked(self.check_unsaved_display)
         menu.addAction(subplot_action)
 
         # plot background
@@ -1320,6 +1329,14 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             state = True if state == "true" else False
         self.ignore_invalidation_bits = state
         self._settings.setValue("ignore_invalidation_bits", state)
+
+    def set_check_unsaved_display(self, state):
+        if isinstance(state, str):
+            state = True if state == "true" else False
+        self.check_unsaved_display = state
+        self._settings.setValue("check_unsaved_display", state)
+
+        set_global_option("check_unsaved_display_file", state)
 
     def set_display_cg_name_option(self, state):
         if isinstance(state, str):

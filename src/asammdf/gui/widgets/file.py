@@ -16,6 +16,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 import asammdf.mdf as mdf_module
 
 from ... import tool
+from ...blocks.options import get_global_option
 from ...blocks.utils import extract_encryption_information, extract_xml_comment, Terminated
 from ...blocks.v4_blocks import AttachmentBlock, FileHistory, HeaderBlock
 from ...blocks.v4_blocks import TextBlock as TextV4
@@ -1648,35 +1649,35 @@ MultiRasterSeparator;&
                 iterator += 1
 
     def close(self):
-        # json.dumps(self.to_config(), indent=2, cls=ExtendedJsonEncoder)
-        hexdigest = self._previous_window_config
-        windows = self.mdi_area.subWindowList()
+        if get_global_option("check_unsaved_display_file"):
+            hexdigest = self._previous_window_config
+            windows = self.mdi_area.subWindowList()
 
-        if windows:
-            unsaved = False
-            
-            if hexdigest:
-                worker = md5()
-                try:
-                    worker.update(json.dumps(self.to_config(), indent=2, cls=ExtendedJsonEncoder).encode('utf-8'))
-                    unsaved = worker.hexdigest() != hexdigest
-                except:
-                    unsaved = False
+            if windows:
+                unsaved = False
+                
+                if hexdigest:
+                    worker = md5()
+                    try:
+                        worker.update(json.dumps(self.to_config(), indent=2, cls=ExtendedJsonEncoder).encode('utf-8'))
+                        unsaved = worker.hexdigest() != hexdigest
+                    except:
+                        unsaved = False
 
-            else:
-                unsaved = True
+                else:
+                    unsaved = True
 
-            if unsaved:
-                answer = MessageBox.question(
-                    self,
-                    "Unsaved display windows",
-                    f"{self.mdf.original_name.name} contains unsaved display changes.\n"
-                    "Do you want to save the windows to a display file?",
-                    detailed_text=f'Complete file path:\n{self.mdf.original_name}',
-                )
+                if unsaved:
+                    answer = MessageBox.question(
+                        self,
+                        "Unsaved display windows",
+                        f"{self.mdf.original_name.name} contains unsaved display changes.\n"
+                        "Do you want to save the windows to a display file?",
+                        detailed_text=f'Complete file path:\n{self.mdf.original_name}',
+                    )
 
-                if answer == MessageBox.StandardButton.Yes:
-                    self.save_channel_list()
+                    if answer == MessageBox.StandardButton.Yes:
+                        self.save_channel_list()
 
         self.clear_windows(is_closing=True)
 
