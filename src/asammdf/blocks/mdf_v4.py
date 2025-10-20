@@ -636,7 +636,7 @@ class MDF4(MDF_Common[Group]):
                     record_size = channel_group.samples_byte_nr
                 else:
                     total_size += (
-                        channel_group.samples_byte_nr + channel_group.invalidation_bytes_nr
+                        channel_group.samples_byte_nr + channel_group.invalidation_bytes_nr + record_id_nr
                     ) * channel_group.cycles_nr
 
                     record_size = channel_group.samples_byte_nr + channel_group.invalidation_bytes_nr
