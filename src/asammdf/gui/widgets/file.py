@@ -921,28 +921,29 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         if toggle_frames:
             self.toggle_frames()
 
-    def to_config(self):
+    def to_config(self, save_check=False):
         config = {}
 
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
 
         signals = []
-        if self.channel_view.currentText() == "Internal file structure":
-            while item := iterator.value():
-                if item.parent() is None:
+        if not save_check:
+            if self.channel_view.currentText() == "Internal file structure":
+                while item := iterator.value():
+                    if item.parent() is None:
+                        iterator += 1
+                        continue
+
+                    if item.checkState(0) == QtCore.Qt.CheckState.Checked:
+                        signals.append(item.text(0))
+
                     iterator += 1
-                    continue
+            else:
+                while item := iterator.value():
+                    if item.checkState(0) == QtCore.Qt.CheckState.Checked:
+                        signals.append(item.text(0))
 
-                if item.checkState(0) == QtCore.Qt.CheckState.Checked:
-                    signals.append(item.text(0))
-
-                iterator += 1
-        else:
-            while item := iterator.value():
-                if item.checkState(0) == QtCore.Qt.CheckState.Checked:
-                    signals.append(item.text(0))
-
-                iterator += 1
+                    iterator += 1
 
         config["selected_channels"] = signals
 
@@ -953,7 +954,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             if not wid_config:
                 continue
 
-            geometry = window.geometry()
+            geometry = window.geometry() if not save_check else QtCore.QRect()
             window_config = {
                 "title": window.windowTitle(),
                 "configuration": wid_config,
@@ -963,8 +964,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     geometry.width(),
                     geometry.height(),
                 ],
-                "maximized": window.isMaximized(),
-                "minimized": window.isMinimized(),
+                "maximized": window.isMaximized() if not save_check else False,
+                "minimized": window.isMinimized() if not save_check else False,
             }
             if isinstance(wid, Numeric):
                 window_config["type"] = "Numeric"
@@ -989,7 +990,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             windows.append(window_config)
 
-        current_window = self.mdi_area.currentSubWindow()
+        current_window = self.mdi_area.currentSubWindow() if not save_check else None
 
         config["windows"] = windows
         config["active_window"] = current_window.windowTitle() if current_window else ""
