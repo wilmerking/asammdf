@@ -2833,7 +2833,8 @@ MultiRasterSeparator;&
                     use_display_names=True)
             mdf.configure(read_fragment_size=split_size)
         else:
-            mdf = self.mdf.configure(read_fragment_size=split_size)
+            mdf = self.mdf
+            mdf.configure(read_fragment_size=split_size)
 
         integer_interpolation = self.mdf._mdf._integer_interpolation
         float_interpolation = self.mdf._mdf._float_interpolation
@@ -2870,6 +2871,8 @@ MultiRasterSeparator;&
             progress.signals.setWindowTitle.emit("Cutting measurement")
             progress.signals.setLabelText.emit(f"Cutting from {opts.cut_start}s to {opts.cut_stop}s")
 
+            inplace=not opts.cut_time_from_zero
+
             # cut self.mdf
             result = mdf.cut(
                 start=opts.cut_start,
@@ -2877,7 +2880,7 @@ MultiRasterSeparator;&
                 whence=opts.whence,
                 version=opts.mdf_version if output_format == "MDF" else "4.10",
                 time_from_zero=opts.cut_time_from_zero,
-                inplace=not opts.cut_time_from_zero,
+                inplace=inplace,
                 progress=progress,
             )
 
@@ -2888,7 +2891,7 @@ MultiRasterSeparator;&
                 float_interpolation=float_interpolation,
             )
 
-            if mdf is not self.mdf:
+            if mdf is not self.mdf and not inplace:
                 mdf.close()
             mdf = result
 
