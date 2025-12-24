@@ -11,3 +11,5 @@ pre-commit
 ruff~=0.12.0  # Aligned with .pre-commit-config.yaml
 tox
 
+streamlit
+plotly
