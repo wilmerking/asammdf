@@ -86,9 +86,9 @@ def create_plot(
         )
 
         # Calculate dynamic height
-        # Base height + height per signal
-        row_height = 200
-        total_height = max(900, num_signals * row_height)
+        # Requirement: "The plot should remain full page height but ... fill the height of the signal plot area."
+        # We'll use a fixed height for the figure, and Plotly automatically scales subplots.
+        total_height = 800  # Fixed height filling the view
 
         for i, sig in enumerate(signals_data):
             name = sig["name"]
@@ -117,7 +117,7 @@ def create_plot(
         # Overlay Mode
         # Create figure with secondary y-axis
         fig = make_subplots(specs=[[{"secondary_y": True}]])
-        total_height = 900
+        total_height = 800
 
         for sig in signals_data:
             name = sig["name"]

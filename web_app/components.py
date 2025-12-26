@@ -3,49 +3,43 @@ from typing import Any
 import streamlit as st
 
 
-def render_channel_selection() -> None:
+import pandas as pd
+
+
+def render_all_signals_list() -> None:
     """
-    Renders the channel selection view.
-    Handles flattening of channels and search optimization for large datasets.
+    Renders the 'All Signals' column with search and 'Staged' checkbox.
+    Updates st.session_state["staged_channels"].
     """
-    # st.header("Channel Selection") # Removed header to save space in narrow column
+    st.markdown("### All Signals")  # Matches mockup header style
 
     mdf = st.session_state.get("mdf_object")
 
     if mdf is None:
-        st.warning("Please upload a file in the 'File Header' section first.")
+        st.warning("No file loaded.")
         return
 
-    # Flatten channel list
-    # iter_channels returns an iterator of Channel objects or similar metadata
-    # We want a list of strings for the multiselect
-    # Using a cache here would be good if we can, but iter_channels depends on the mdf object state
+    # Ensure staged_channels exists
+    if "staged_channels" not in st.session_state:
+        st.session_state["staged_channels"] = []
 
-    # We'll cache the channel list in session state to avoid re-iterating on every rerun
+    # Sync with legacy 'selected_channels' if present (migration)
+    if (
+        "selected_channels" in st.session_state
+        and not st.session_state["staged_channels"]
+        and st.session_state["selected_channels"]
+    ):
+        st.session_state["staged_channels"] = list(st.session_state["selected_channels"])
+
+    # --- 1. Get All Channels (Cached) ---
     if "all_channels" not in st.session_state or st.session_state.get("channel_source_file") != st.session_state.get(
         "file_path"
     ):
         with st.spinner("Indexing channels..."):
             channels = []
-            # mdf.iter_channels() yields (group_index, channel_index, name, group, source) usually?
-            # actually asammdf has iter_channels(options) -> yields channel object or name.
-            # Let's check what iter_channels returns or just use a safe approach.
-            # mdf.iter_channels() returns a generator of names if no payload.
-            # But let's verify. standard usage: for group_index, channel_index, channel_name, group, source in mdf.iter_channels():
-
-            # To be safe and fast, we can use mdf.channels_db which is a dict of {name: (group_index, channel_index)} list
-            # But iter_channels gives us everything.
-
-            # Let's assume standard behavior:
-            # list(mdf.iter_channels()) returns names if simple? No, it returns tuples usually.
-            # Let's try to get just names for now.
             try:
-                # The most reliable way to get all channel names:
-                # mdf.get_all_channels() ? No, that might not exist.
-                # mdf.channels_db is {name: [entry, ..]}
                 channels = sorted(mdf.channels_db.keys())
             except Exception:
-                # Fallback if internal structure is different
                 channels = []
                 for name in mdf.channels_db:
                     channels.append(name)
@@ -53,48 +47,156 @@ def render_channel_selection() -> None:
             st.session_state["all_channels"] = channels
             st.session_state["channel_source_file"] = st.session_state.get("file_path")
 
-    all_channels: list[str] = st.session_state["all_channels"]
+    all_channels = st.session_state["all_channels"]
 
-    # Optimization: Search filter
-    if len(all_channels) > 1000:
-        search_query = st.text_input("Search Channels", help="Type to filter the channel list")
-        if search_query:
-            filtered_channels = [c for c in all_channels if search_query.lower() in c.lower()]
-        else:
-            # If > 1000 and no search, might be too heavy to show all?
-            # Streamlit multiselect handles a few thousand okay, but > 10k is slow.
-            # Let's show all if no search, or maybe limit?
-            filtered_channels = all_channels
+    # --- 2. Search & Filter ---
+    # col1, col2 = st.columns([3, 1]) # Optional: add "Select All" button? Mockup doesn't show it.
+
+    search_query = st.text_input("Search", placeholder="Search signals...", label_visibility="collapsed")
+
+    if search_query:
+        filtered_channels = [c for c in all_channels if search_query.lower() in c.lower()]
     else:
         filtered_channels = all_channels
 
-    # Multiselect
-    # Check if we have pre-selected channels
-    current_selection: list[str] = st.session_state["selected_channels"]
+    # --- 3. Prepare DataFrame for Data Editor ---
+    # We need to know which are currently staged
+    current_staged_set = set(st.session_state["staged_channels"])
 
-    # We need to make sure current_selection items are in filtered_channels to show up successfully as "selected"
-    # if we are strictly filtering. But multiselect 'default' must be present in options.
-    # So options must be union of filtered + current_selection
+    # Create DF
+    df = pd.DataFrame({"Signal": filtered_channels})
+    # 'Staged' is True if in current_staged_set
+    df["Staged"] = df["Signal"].isin(current_staged_set)
 
-    options = list(set(filtered_channels) | set(current_selection))
-    options.sort()
+    # --- 4. Render Data Editor ---
+    # use_container_width=True to fill the column
+    # height: let's make it fill most of the page height or fixed large height
 
-    new_selection = st.multiselect("Select Channels to Plot", options=options, default=current_selection)
+    edited_df = st.data_editor(
+        df,
+        column_config={
+            "Signal": st.column_config.TextColumn("Signal", disabled=True),
+            "Staged": st.column_config.CheckboxColumn("Staged", required=True),
+        },
+        use_container_width=True,
+        hide_index=True,
+        height=800,  # Approximate full height
+        key="editor_all_signals",
+    )
 
-    # Update session state
-    # Update session state
-    if new_selection != current_selection:
-        st.session_state["selected_channels"] = new_selection
+    # --- 5. Update State ---
+    # We need to reconcile changes.
+    # Only the rows in 'filtered_channels' are in 'edited_df'.
+    # 1. Identify what is staged in the VIEW
+    staged_in_view = set(edited_df[edited_df["Staged"]]["Signal"])
+
+    # 2. Identify what was currently staged among the visible signals before edit?
+    # Actually, easier:
+    # New Staged Set = (Old Staged Set - Available Signals) U (Staged in View)
+    # i.e., keep everything NOT visible, and replace everything visible with new state.
+
+    available_signals_set = set(filtered_channels)
+
+    # Signals that are staged but NOT in the current filtered view (preserve them)
+    staged_hidden = current_staged_set - available_signals_set
+
+    # New total staged
+    new_staged_set = staged_hidden.union(staged_in_view)
+
+    # Update session state if changed
+    if new_staged_set != current_staged_set:
+        st.session_state["staged_channels"] = sorted(list(new_staged_set))
+        # Keep legacy 'selected_channels' in sync for now if used elsewhere
+        st.session_state["selected_channels"] = st.session_state["staged_channels"]
+        st.rerun()  # Rerun to update the Staged Signals column immediately
 
 
-def render_plot_settings(selected_channels: list[str]) -> dict[str, Any]:
+def render_staged_signals_list() -> dict[str, Any]:
     """
-    Renders sidebar settings for plotting: decimation and axis control.
-    Returns a dict with settings.
+    Renders the 'Staged Signals' column with 'Shown' checkbox and Plot Settings.
+    Updates st.session_state["shown_channels"].
+    Returns dict of plot settings.
     """
-    # st.sidebar.header("Plot Settings") # Removed header
+    st.markdown("### Staged Signals")
 
-    # Plot Type Selector
+    staged = st.session_state.get("staged_channels", [])
+
+    if "shown_channels" not in st.session_state:
+        # Default: all staged are shown initially? Or none?
+        # Usually users expect what they click to show up.
+        st.session_state["shown_channels"] = list(staged)
+
+    # Sync: Ensure 'shown_channels' only contains currently staged signals
+    # If a signal was unstaged, remove it from shown.
+    # If a signal was newly staged, add it to shown? (Common UX: yes)
+
+    # We can detect newly staged by diffing with previous loop?
+    # Or just default "Shown" to match "Staged" for new items is tricky without history.
+    # Simple rule: Intersection.
+    # But if I add a new one, does it default to True?
+    # Let's assume yes: if it's in staged but we haven't tracked it, default to True?
+    # Actually, simplest is: maintain the set.
+
+    current_shown_set = set(st.session_state["shown_channels"]) & set(staged)
+
+    # Identify items in 'staged' that were NOT in 'staged' last time? Hard.
+    # Let's just trust the user's manual "Shown" toggle, but auto-select all if list grows?
+    # For now, let's just initialize 'shown' with new additions if we want.
+    # But standard data_editor behavior: logic below.
+
+    # Create DF
+    df = pd.DataFrame({"Signal": staged})
+
+    # 'Shown': True if in current_shown_set.
+    # Rule: If a signal is in 'staged' but not in 'current_shown_set', check if it was previously known?
+    # Let's just simplify: If it's in 'current_shown_set', it's True.
+    # BUT, if I just staged it in Col 1, I want it to be Shown by default.
+    # Problem: I don't know if I just staged it or if I unchecked it in Col 2 previously.
+    # Solution: We'll interpret "staged_channels" changes in Col 1.
+    # For now, let's just default to True for everything, and remember False?
+    # Let's just use the set. If I confirm it in Col 1, I have to check it in Col 2?
+    # That might be annoying.
+    # Let's try to default 'Shown' = True for all rows, unless explicitly unchecked?
+    # We can track "hidden_channels" instead of "shown_channels". Default hidden = empty.
+
+    if "hidden_channels" not in st.session_state:
+        st.session_state["hidden_channels"] = []
+
+    hidden_set = set(st.session_state["hidden_channels"])
+
+    # Shown = Signal NOT in hidden_set
+    df["Shown"] = ~df["Signal"].isin(hidden_set)
+
+    # Render Editor
+    edited_df = st.data_editor(
+        df,
+        column_config={
+            "Signal": st.column_config.TextColumn("Signal", disabled=True),
+            "Shown": st.column_config.CheckboxColumn("Shown", required=True),
+        },
+        use_container_width=True,
+        hide_index=True,
+        height=300,  # Smaller than first col, as we need space for settings
+        key="editor_staged_signals",
+    )
+
+    # Update Hidden Set
+    # New hidden = rows where Shown is False
+    new_hidden = set(edited_df[~edited_df["Shown"]]["Signal"])
+
+    if new_hidden != hidden_set:
+        st.session_state["hidden_channels"] = list(new_hidden)
+        # We might need rerun to update plot immediately
+        st.rerun()
+
+    # Determine final shown list for plotting
+    shown_channels = [s for s in staged if s not in new_hidden]
+    st.session_state["shown_channels"] = shown_channels
+
+    # --- Plot Settings ---
+    st.divider()
+    # st.subheader("Settings") # Space constraints
+
     plot_type = st.radio("Plot Mode", ["Stack", "Overlay"], index=0, horizontal=True)
 
     decimation = st.slider(
@@ -102,15 +204,16 @@ def render_plot_settings(selected_channels: list[str]) -> dict[str, Any]:
         min_value=1,
         max_value=100,
         value=1,
-        help="Reduce data points for faster plotting (e.g., 10 = use every 10th point).",
+        help="Reduce data points for faster plotting.",
     )
 
-    secondary_y: list[str] = st.multiselect(
-        "Secondary Y-Axis Channels",
-        options=selected_channels,
-        help="Select channels to plot on the right-hand axis.",
-        disabled=(plot_type == "Stack"),  # Secondary Y doesn't make much sense in Stack mode usually
-    )
+    secondary_y = []
+    if plot_type == "Overlay":
+        secondary_y = st.multiselect(
+            "Secondary Y-Axis Channels",
+            options=shown_channels,
+            help="Select channels to plot on the right-hand axis.",
+        )
 
     return {"decimation": decimation, "secondary_y": secondary_y, "plot_type": plot_type}
 

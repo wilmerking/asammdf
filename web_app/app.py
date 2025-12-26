@@ -3,10 +3,10 @@ import os
 import streamlit as st
 
 from components import (
+    render_all_signals_list,
     render_bus_logging,
-    render_channel_selection,
     render_file_conversion,
-    render_plot_settings,
+    render_staged_signals_list,
     render_tabular_view,
 )
 from plotting import create_plot, get_plot_data
@@ -58,33 +58,27 @@ if mode == "File Header":
 elif mode == "Visualization":
     st.header("Visualization")
 
-    # Use 2-column layout: Left for controls, Right for plot
-    col_controls, col_plot = st.columns([1, 4])
+    # Use 3-column layout: All Signals | Staged Signals | Plot
+    col_all, col_staged, col_plot = st.columns([1, 1, 4])
 
-    with col_controls:
-        # Render settings
-        # We need selected_channels for plot_settings
-        # But we also render channel selection here.
+    with col_all:
+        render_all_signals_list()
 
-        # 1. Render Channel Selection (populates st.session_state["selected_channels"])
-        render_channel_selection()
-
-        selected_channels = st.session_state["selected_channels"]
-
-        # 2. Render Plot Settings (Stack/Overlay, Decimation)
-        # Only show if channels selected, or always?
-        # Better always so user can see options.
-        plot_settings = render_plot_settings(selected_channels)
+    with col_staged:
+        plot_settings = render_staged_signals_list()
+        # plot_settings contains 'plot_type', 'decimation', 'secondary_y'
 
     with col_plot:
-        if not selected_channels:
-            st.info("Please select channels from the list on the left.")
+        shown_channels = st.session_state.get("shown_channels", [])
+
+        if not shown_channels:
+            st.info("Select signals to stage, then verify they are shown.")
         else:
             mdf = st.session_state["mdf_object"]
 
             if mdf:
                 with st.spinner("Extracting and plotting data..."):
-                    signals_data = get_plot_data(mdf, selected_channels, decimation=plot_settings["decimation"])
+                    signals_data = get_plot_data(mdf, shown_channels, decimation=plot_settings["decimation"])
 
                     if signals_data:
                         fig = create_plot(
