@@ -17,6 +17,8 @@ _Guiding Note: Put changes here that have been merged but not yet tagged in a re
 
 ### Fixed
 
+- Fixed zoom in/out issue on signal plots; interactive zoom now only scales the X-axis (time).
+
 ---
 
 ## [0.1.0] - 2025-12-24

@@ -52,31 +52,51 @@ if mode == "File Header":
             st.subheader("File Information")
             st.json(mdf.header)
 
-            # Channel Pre-selection interface
-            render_channel_selection()
+            # Channel selection moved to Visualization page
 
 elif mode == "Visualization":
     st.header("Visualization")
 
-    selected_channels = st.session_state["selected_channels"]
+    # Use 2-column layout: Left for controls, Right for plot
+    col_controls, col_plot = st.columns([1, 4])
 
-    if not selected_channels:
-        st.info("Please select channels in the 'File Header' tab first.")
-    else:
-        # Render settings in sidebar (only visible in this mode)
+    with col_controls:
+        # Render settings
+        # We need selected_channels for plot_settings
+        # But we also render channel selection here.
+
+        # 1. Render Channel Selection (populates st.session_state["selected_channels"])
+        render_channel_selection()
+
+        selected_channels = st.session_state["selected_channels"]
+
+        # 2. Render Plot Settings (Stack/Overlay, Decimation)
+        # Only show if channels selected, or always?
+        # Better always so user can see options.
         plot_settings = render_plot_settings(selected_channels)
 
-        mdf = st.session_state["mdf_object"]
+    with col_plot:
+        if not selected_channels:
+            st.info("Please select channels from the list on the left.")
+        else:
+            mdf = st.session_state["mdf_object"]
 
-        if mdf:
-            with st.spinner("Extracting and plotting data..."):
-                signals_data = get_plot_data(mdf, selected_channels, decimation=plot_settings["decimation"])
+            if mdf:
+                with st.spinner("Extracting and plotting data..."):
+                    signals_data = get_plot_data(mdf, selected_channels, decimation=plot_settings["decimation"])
 
-                if signals_data:
-                    fig = create_plot(signals_data, secondary_y_channels=plot_settings["secondary_y"])
-                    st.plotly_chart(fig, use_container_width=True)
-                else:
-                    st.warning("No data found for selected channels.")
+                    if signals_data:
+                        fig = create_plot(
+                            signals_data,
+                            secondary_y_channels=plot_settings["secondary_y"],
+                            plot_type=plot_settings["plot_type"],
+                        )
+                        # Increase height in layout if needed, but create_plot handles it
+                        st.plotly_chart(fig, use_container_width=True)
+                    else:
+                        st.warning("No data found for selected channels.")
+            else:
+                st.info("Please upload a file in 'File Header' first.")
 
 elif mode == "Tabular View":
     render_tabular_view(st.session_state["selected_channels"])

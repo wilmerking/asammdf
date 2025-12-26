@@ -54,13 +54,16 @@ def get_plot_data(mdf: Any, channel_names: list[str], decimation: int = 1) -> li
     return extracted_data
 
 
-def create_plot(signals_data: list[dict[str, Any]], secondary_y_channels: list[str] | None = None) -> go.Figure:
+def create_plot(
+    signals_data: list[dict[str, Any]], secondary_y_channels: list[str] | None = None, plot_type: str = "Overlay"
+) -> go.Figure:
     """
     Creates a Plotly Figure from the extracted signal data.
 
     Args:
         signals_data: List of dicts returned by get_plot_data.
-        secondary_y_channels: List of channel names to plot on the secondary Y-axis.
+        secondary_y_channels: List of channel names to plot on the secondary Y-axis (only for Overlay).
+        plot_type: "Overlay" or "Stack".
 
     Returns:
         plotly.graph_objects.Figure
@@ -68,38 +71,88 @@ def create_plot(signals_data: list[dict[str, Any]], secondary_y_channels: list[s
     if secondary_y_channels is None:
         secondary_y_channels = []
 
-    # Create figure with secondary y-axis
-    fig = make_subplots(specs=[[{"secondary_y": True}]])
+    num_signals = len(signals_data)
+    if num_signals == 0:
+        return go.Figure()
 
-    for sig in signals_data:
-        name = sig["name"]
-        unit = sig["unit"]
-
-        # Determine axis
-        on_secondary = name in secondary_y_channels
-
-        # Add trace
-        fig.add_trace(
-            go.Scatter(
-                x=sig["timestamps"],
-                y=sig["samples"],
-                name=f"{name} [{unit}]",
-                mode="lines",
-            ),
-            secondary_y=on_secondary,
+    if plot_type == "Stack":
+        # Create subplots: one row per signal
+        fig = make_subplots(
+            rows=num_signals,
+            cols=1,
+            shared_xaxes=True,
+            vertical_spacing=0.02,
+            subplot_titles=[s["name"] for s in signals_data],
         )
 
-    # Update layout
+        # Calculate dynamic height
+        # Base height + height per signal
+        row_height = 150  # px per signal?
+        total_height = max(600, num_signals * row_height)
+
+        for i, sig in enumerate(signals_data):
+            name = sig["name"]
+            unit = sig["unit"]
+
+            # Row index is 1-based
+            row_idx = i + 1
+
+            fig.add_trace(
+                go.Scatter(
+                    x=sig["timestamps"],
+                    y=sig["samples"],
+                    name=f"{name} [{unit}]",
+                    mode="lines",
+                ),
+                row=row_idx,
+                col=1,
+            )
+
+            # Update y-axis for this specific row to be fixed range
+            # access yaxis object like 'yaxis', 'yaxis2', etc.
+            # but update_yaxes with row/col selector is easier
+            fig.update_yaxes(title_text=unit, row=row_idx, col=1, fixedrange=True)
+
+    else:
+        # Overlay Mode
+        # Create figure with secondary y-axis
+        fig = make_subplots(specs=[[{"secondary_y": True}]])
+        total_height = 600
+
+        for sig in signals_data:
+            name = sig["name"]
+            unit = sig["unit"]
+
+            # Determine axis
+            on_secondary = name in secondary_y_channels
+
+            # Add trace
+            fig.add_trace(
+                go.Scatter(
+                    x=sig["timestamps"],
+                    y=sig["samples"],
+                    name=f"{name} [{unit}]",
+                    mode="lines",
+                ),
+                secondary_y=on_secondary,
+            )
+
+        # Set y-axes titles
+        # Setting fixedrange=True disables interactive zoom on y-axes, so selection only zooms X
+        fig.update_yaxes(title_text="Primary Axis", secondary_y=False, fixedrange=True)
+        fig.update_yaxes(title_text="Secondary Axis", secondary_y=True, fixedrange=True)
+
+    # Update layout common to both
     fig.update_layout(
         title_text="Signal Plot",
         xaxis_title="Time [s]",
-        height=600,
+        height=total_height,
         hovermode="x unified",
-        template="plotly_dark",  # Matching 'Aesthetics' requirement for dark/premium feel
+        template="plotly_dark",  # Matching 'Aesthetics' requirement
+        showlegend=True,
     )
 
-    # Set y-axes titles
-    fig.update_yaxes(title_text="Primary Axis", secondary_y=False)
-    fig.update_yaxes(title_text="Secondary Axis", secondary_y=True)
+    # Ensure X axis is always zoomed correctly
+    # If shared_xaxes=True (stack), zooming one zooms all.
 
     return fig

@@ -4,7 +4,8 @@ Last updated: 2025-12-24
 
 ### New Features 🚀
 
-- [ ] Phase 4 Feature-Specific Instructions
+- [x] Phase 4 Feature-Specific Instructions
+
   - Tabular View (Replacing Tabular Widget)
   - Refer to asammdf.gui.widgets.tabular.py.
   - Action: Use st.dataframe or st.data_editor.
@@ -21,7 +22,12 @@ Last updated: 2025-12-24
   - If supporting generic bus logging (BLF/ASC), add a section to upload DBC/ARXML database files alongside the log file.
   - Use mdf.extract_bus_logging(database_files=...) to convert raw CAN frames into physical signals before the "Channel Selection" phase.
 
----
+- [x] Vertically enlarge the signal plot
+  - The signal plot should be vertically enlarged to show more area.
+  - Give it a selector to choose stack or fill options for the signals. Fill is the current impelemntation where each signal vertically takes the space of the maximum value. when stack is selected, each signal should be stacked vertically so that no signals overlap each other (see attached screenshot).
+  - Move the signal selector to the left of the signal plot similar to the attached screenshot.
+
+### Future Features 🚀
 
 - [ ] Phase 5 Performance & Cleanup
   - Memory Management
@@ -33,5 +39,5 @@ Last updated: 2025-12-24
 
 ### Bug Fixes 🐛
 
-- [ ] Fix the zoom in/out issue on the signal plot
+- [x] Fix the zoom in/out issue on the signal plot
   - when the zoom in/out is used, the plot should scale the x axis but not the y axis
