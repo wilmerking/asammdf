@@ -10,7 +10,7 @@ from components import (
     render_tabular_view,
 )
 from plotting import create_plot, get_plot_data
-from utils import load_mdf
+from utils import load_mdf, load_dspf
 
 
 st.set_page_config(page_title="asammdf Streamlit", layout="wide")
@@ -52,6 +52,23 @@ if mode == "File Header":
         if mdf:
             st.subheader("File Information")
             st.json(mdf.header)
+
+            st.divider()
+
+            # DSPF Configuration Upload
+            st.subheader("Load Configuration")
+            uploaded_dspf = st.file_uploader("Upload DSPF Configuration (.dspf)", type=["dspf"])
+            if uploaded_dspf:
+                with st.spinner("Loading configuration..."):
+                    dspf_channels = load_dspf(uploaded_dspf)
+                    if dspf_channels:
+                        # Update staged channels
+                        current_staged = set(st.session_state.get("staged_channels", []))
+                        new_staged = current_staged.union(set(dspf_channels))
+                        st.session_state["staged_channels"] = sorted(list(new_staged))
+                        st.success(f"Loaded {len(dspf_channels)} channels from configuration.")
+                    else:
+                        st.warning("No channels found in configuration or parse error.")
 
             st.divider()
             # Channel selection (All Signals) moved here

@@ -88,7 +88,7 @@ def create_plot(
         # Calculate dynamic height
         # Requirement: "The plot should remain full page height but ... fill the height of the signal plot area."
         # We'll use a fixed height for the figure, and Plotly automatically scales subplots.
-        total_height = 800  # Fixed height filling the view
+        total_height = 1200  # Fixed height filling the view
 
         for i, sig in enumerate(signals_data):
             name = sig["name"]
