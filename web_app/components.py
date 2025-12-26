@@ -80,7 +80,7 @@ def render_all_signals_list() -> None:
         },
         use_container_width=True,
         hide_index=True,
-        height=800,  # Approximate full height
+        height=600,  # Adjusted height for better visibility in full-width mode
         key="editor_all_signals",
     )
 

@@ -53,16 +53,17 @@ if mode == "File Header":
             st.subheader("File Information")
             st.json(mdf.header)
 
-            # Channel selection moved to Visualization page
+            st.divider()
+            # Channel selection (All Signals) moved here
+            render_all_signals_list()
+
 
 elif mode == "Visualization":
     st.header("Visualization")
 
-    # Use 3-column layout: All Signals | Staged Signals | Plot
-    col_all, col_staged, col_plot = st.columns([1, 1, 4])
-
-    with col_all:
-        render_all_signals_list()
+    # Use 2-column layout: Staged Signals | Plot
+    # Staged signals takes less space, Plot takes more
+    col_staged, col_plot = st.columns([1, 4])
 
     with col_staged:
         plot_settings = render_staged_signals_list()

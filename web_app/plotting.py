@@ -149,7 +149,7 @@ def create_plot(
         height=total_height,
         hovermode="x unified",
         template="plotly_dark",  # Matching 'Aesthetics' requirement
-        showlegend=True,
+        showlegend=False,
     )
 
     # Ensure X axis is always zoomed correctly
