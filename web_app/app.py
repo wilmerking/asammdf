@@ -1,7 +1,5 @@
 import os
 
-import streamlit as st
-
 from components import (
     render_all_signals_list,
     render_bus_logging,
@@ -10,8 +8,8 @@ from components import (
     render_tabular_view,
 )
 from plotting import create_plot, get_plot_data
-from utils import load_mdf, load_dspf
-
+import streamlit as st
+from utils import load_dspf, load_mdf
 
 st.set_page_config(page_title="asammdf Streamlit", layout="wide")
 
@@ -65,7 +63,7 @@ if mode == "File Header":
                         # Update staged channels
                         current_staged = set(st.session_state.get("staged_channels", []))
                         new_staged = current_staged.union(set(dspf_channels))
-                        st.session_state["staged_channels"] = sorted(list(new_staged))
+                        st.session_state["staged_channels"] = sorted(new_staged)
                         st.success(f"Loaded {len(dspf_channels)} channels from configuration.")
                     else:
                         st.warning("No channels found in configuration or parse error.")
