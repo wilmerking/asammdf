@@ -12,6 +12,7 @@ from components import (
 from plotting import create_plot, get_plot_data
 from utils import load_mdf
 
+
 st.set_page_config(page_title="asammdf Streamlit", layout="wide")
 
 # Initialize session state

@@ -1,8 +1,8 @@
 from typing import Any
 
 import plotly.graph_objects as go  # type: ignore
-import streamlit as st
 from plotly.subplots import make_subplots  # type: ignore
+import streamlit as st
 
 
 def get_plot_data(mdf: Any, channel_names: list[str], decimation: int = 1) -> list[dict[str, Any]]:
@@ -87,8 +87,8 @@ def create_plot(
 
         # Calculate dynamic height
         # Base height + height per signal
-        row_height = 150  # px per signal?
-        total_height = max(600, num_signals * row_height)
+        row_height = 200
+        total_height = max(900, num_signals * row_height)
 
         for i, sig in enumerate(signals_data):
             name = sig["name"]
@@ -117,7 +117,7 @@ def create_plot(
         # Overlay Mode
         # Create figure with secondary y-axis
         fig = make_subplots(specs=[[{"secondary_y": True}]])
-        total_height = 600
+        total_height = 900
 
         for sig in signals_data:
             name = sig["name"]

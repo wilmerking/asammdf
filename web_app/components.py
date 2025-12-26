@@ -260,8 +260,8 @@ def render_file_conversion() -> None:
     # asammdf export(fmt, filename, compression=...)
 
     if st.button("Convert and Prepare Download"):
-        import tempfile
         import os
+        import tempfile
 
         with st.spinner("Converting..."):
             try:
@@ -327,8 +327,8 @@ def render_bus_logging() -> None:
             st.warning("Please upload at least one database file.")
             return
 
-        import tempfile
         import os
+        import tempfile
 
         # Save DBCs to temp paths because extract_bus_logging needs paths usually
         db_paths = []
