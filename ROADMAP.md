@@ -32,3 +32,6 @@ Last updated: 2025-12-24
   - Display errors using st.error instead of the desktop ErrorDialog.
 
 ### Bug Fixes 🐛
+
+- [ ] Fix the zoom in/out issue on the signal plot
+  - when the zoom in/out is used, the plot should scale the x axis but not the y axis

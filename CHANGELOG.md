@@ -11,6 +11,10 @@ _Guiding Note: Put changes here that have been merged but not yet tagged in a re
 
 ### Added
 
+- Tabular View for inspecting signal data with time range filtering.
+- File Conversion & Export tool (supports CSV, Parquet, HDF5, MAT).
+- Bus Logging extraction (decoding CAN/LIN frames using DBC/ARXML files).
+
 ### Fixed
 
 ---

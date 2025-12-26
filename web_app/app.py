@@ -2,7 +2,13 @@ import os
 
 import streamlit as st
 
-from components import render_channel_selection, render_plot_settings
+from components import (
+    render_bus_logging,
+    render_channel_selection,
+    render_file_conversion,
+    render_plot_settings,
+    render_tabular_view,
+)
 from plotting import create_plot, get_plot_data
 from utils import load_mdf
 
@@ -18,7 +24,7 @@ if "file_path" not in st.session_state:
 
 # Sidebar Navigation
 st.sidebar.title("Navigation")
-mode = st.sidebar.radio("Go to", ["File Header", "Visualization"])
+mode = st.sidebar.radio("Go to", ["File Header", "Visualization", "Tabular View", "File Conversion", "Bus Logging"])
 
 if mode == "File Header":
     st.header("File Upload & Header Info")
@@ -71,3 +77,12 @@ elif mode == "Visualization":
                     st.plotly_chart(fig, use_container_width=True)
                 else:
                     st.warning("No data found for selected channels.")
+
+elif mode == "Tabular View":
+    render_tabular_view(st.session_state["selected_channels"])
+
+elif mode == "File Conversion":
+    render_file_conversion()
+
+elif mode == "Bus Logging":
+    render_bus_logging()
